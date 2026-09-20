@@ -1,0 +1,55 @@
+import asyncio
+import time
+from aiogram import Bot
+from config import config
+from database.db import due_reminders, expired_captchas, del_captcha
+from database.extra import due_giveaways
+from handlers.common import MUTE_PERMS
+from core.text import mention
+
+
+async def scheduler_loop(bot: Bot):
+    while True:
+        try:
+            await _tick(bot)
+        except Exception:
+            pass
+        await asyncio.sleep(config.SCHEDULER_TICK)
+
+
+async def _tick(bot: Bot):
+    now = time.time()
+    for r in await due_reminders(now):
+        try:
+            await bot.send_message(r["chat_id"], f"Напоминание для <a href='tg://user?id={r['user_id']}'>тебя</a>: {r['text']}")
+        except Exception:
+            try:
+                await bot.send_message(r["user_id"], f"Напоминание: {r['text']}")
+            except Exception:
+                pass
+    for c in await expired_captchas(now):
+        try:
+            if c.get("message_id"):
+                await bot.delete_message(c["chat_id"], c["message_id"])
+        except Exception:
+            pass
+        s_kick = True
+        try:
+            from database.db import get_settings
+            s = await get_settings(c["chat_id"])
+            s_kick = bool(s.get("captcha_kick", 1))
+        except Exception:
+            pass
+        try:
+            if s_kick:
+                await bot.ban_chat_member(c["chat_id"], c["user_id"])
+                await bot.unban_chat_member(c["chat_id"], c["user_id"])
+        except Exception:
+            pass
+        await del_captcha(c["chat_id"], c["user_id"])
+    try:
+        from handlers.giveaway import finish_giveaway
+        for g in await due_giveaways(now):
+            await finish_giveaway(bot, g["id"])
+    except Exception:
+        pass

@@ -1,0 +1,39 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# db & runtime
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+*.db
+*.log
+*.pid
+
+# tools / IDE
+.idea/
+.vscode/
+.DS_Store
+*.swp
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# archives
+*.zip
+*.tar.gz
