@@ -25,4 +25,9 @@ from . import (
     backup,
     watch,
     catalog,
+    ranks,
+    cabinet,
+    economy,
+    synonyms,
+    tickets,
 )

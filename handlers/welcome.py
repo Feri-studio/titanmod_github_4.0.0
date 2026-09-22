@@ -103,41 +103,59 @@ async def cmd_captchatime(message: Message, command: CommandObject):
     await message.reply("Таймаут обновлён.")
 
 
-@router.message(Command("setrules", "правила"), IsAdminFilter(), IsGroupFilter())
+@router.message(Command("setrules"), IsAdminFilter(), IsGroupFilter())
 async def cmd_setrules(message: Message, command: CommandObject):
+    from core.style import rules_card, ok, card
     if not command.args:
         s = await get_settings(message.chat.id)
-        await message.reply(s.get("rules") or "Правил нет. /setrules текст")
+        await message.reply(
+            rules_card(message.chat.title or "чат", s.get("rules") or "")
+        )
         return
-    await update_settings(message.chat.id, rules=command.args)
-    await message.reply("Правила сохранены.")
+    await update_settings(message.chat.id, rules=command.args.strip())
+    await message.reply(ok("Правила сохранены. Показать: /rules"))
 
 
-@router.message(Command("rules"))
+@router.message(Command("rules", "правила"))
 async def cmd_rules(message: Message, bot: Bot):
-    s = await get_settings(message.chat.id)
-    rules = s.get("rules") or "Правила не установлены."
+    from core.style import rules_card, ok
+    from database.db import get_connection
+    chat_id = message.chat.id
+    title = message.chat.title or "чат"
+    if message.chat.type == "private":
+        conn = await get_connection(message.from_user.id)
+        if not conn:
+            await message.reply(
+                "📜 Открой /rules <b>в группе</b> или привяжи чат: <code>/connect</code>"
+            )
+            return
+        chat_id = conn
+        title = "привязанный чат"
+    s = await get_settings(chat_id)
+    text = rules_card(title, s.get("rules") or "")
     if s.get("private_rules") and message.chat.type != "private":
         try:
-            await bot.send_message(message.from_user.id, rules)
-            await message.reply("Правила отправлены в ЛС.")
+            await bot.send_message(message.from_user.id, text)
+            await message.reply(ok("Правила отправлены в ЛС."))
             return
         except Exception:
             pass
-    await message.reply(rules)
+    await message.reply(text)
 
 
 @router.message(Command("privaterules"), IsAdminFilter(), IsGroupFilter())
 async def cmd_privrules(message: Message, command: CommandObject):
-    on = (command.args or "on").lower() in ("on", "1", "да")
+    from core.style import ok
+    on = (command.args or "on").lower() in ("on", "1", "да", "yes", "true")
     await update_settings(message.chat.id, private_rules=1 if on else 0)
-    await message.reply("private rules " + ("on" if on else "off"))
+    await message.reply(ok("Правила в ЛС: " + ("включены" if on else "выключены")))
 
 
 @router.message(Command("clearrules"), IsAdminFilter(), IsGroupFilter())
 async def cmd_clearrules(message: Message):
+    from core.style import ok
     await update_settings(message.chat.id, rules="")
-    await message.reply("Правила очищены.")
+    await message.reply(ok("Правила очищены."))
 
 
 @router.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))

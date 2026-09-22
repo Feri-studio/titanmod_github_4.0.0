@@ -1,8 +1,22 @@
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+_ROOT = Path(__file__).resolve().parent
+
+
+def _read_version() -> str:
+    path = _ROOT / "VERSION"
+    try:
+        v = path.read_text(encoding="utf-8").strip()
+        if v:
+            return v
+    except Exception:
+        pass
+    return "4.0.0"
 
 
 def _parse_ids(raw: str) -> list[int]:
@@ -29,7 +43,7 @@ class Config:
     MAX_FILTER_LENGTH: int = 4000
     MAX_WELCOME_LENGTH: int = 2000
     SCHEDULER_TICK: int = 20
-    VERSION: str = "3.1.0"
+    VERSION: str = field(default_factory=_read_version)
     BOT_NAME: str = "TitanMod"
 
     def is_owner(self, user_id: int) -> bool:

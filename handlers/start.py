@@ -4,10 +4,9 @@ from aiogram.filters import Command, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from config import config
-from core.commands import COMMANDS, CATEGORIES, HELP_TEXT, ALL_COMMAND_NAMES
-from core.style import HR, CAT_EMOJI, card, safe_edit
+from core.commands import COMMANDS, CATEGORIES, ALL_COMMAND_NAMES
+from core.style import HR, HR_LIGHT, CAT_EMOJI, card, safe_edit, unknown_command
 from core.text import html_esc
-from database.db import get_connection
 from keyboards.inline import help_kb
 
 router = Router()
@@ -29,44 +28,49 @@ async def start_kb(bot: Bot) -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
-@router.message(Command("start"))
-async def cmd_start(message: Message, command: CommandObject, bot: Bot):
-    extra = ""
-    conn = await get_connection(message.from_user.id)
-    if conn:
-        extra = f"\n🔗 Привязан чат: <code>{conn}</code>"
-    args = command.args or ""
-    if args == "help":
-        await cmd_help(message)
-        return
+def about_text() -> str:
+    return (
+        f"✨ <b>{config.BOT_NAME}</b>  <code>v{config.VERSION}</code>\n"
+        f"{HR}\n"
+        f"Telegram-бот модерации на aiogram 3.\n\n"
+        f"› Наказания, варны, замки, капча\n"
+        f"› Ранги, экономика, тикеты\n"
+        f"› Автомод, федерации, розыгрыши\n"
+        f"{HR_LIGHT}\n"
+        f"<i>Сделай бота админом группы для полного функционала</i>"
+    )
+
+
+@router.message(Command("start"), F.chat.type.in_({"group", "supergroup"}))
+async def cmd_start_group(message: Message, command: CommandObject, bot: Bot):
     name = html_esc(message.from_user.first_name if message.from_user else "")
     text = (
-        f"✦ <b>{config.BOT_NAME}</b>  <code>v{config.VERSION}</code>\n"
-        f"Привет, {name}!\n"
+        f"✨ <b>{config.BOT_NAME}</b>  <code>v{config.VERSION}</code>\n"
         f"{HR}\n"
-        f"Я держу чат в порядке — красиво и жёстко, когда надо.\n\n"
-        f"🔨 баны · муты · варны · карантин\n"
-        f"🔒 40+ замков контента · антифлуд · антирейд\n"
-        f"👋 капча · приветствия · правила\n"
-        f"📝 заметки · фильтры · розыгрыши · XP\n"
-        f"{HR}\n"
-        f"<b>Как включить</b>\n"
-        f"1. Добавь меня в группу\n"
-        f"2. Дай права: удаление сообщений + блокировка\n"
-        f"3. Напиши <code>/settings</code> и <code>/commands</code>\n"
-        f"{extra}\n\n"
-        f"<i>{len(ALL_COMMAND_NAMES)} команд · жми кнопки ниже</i>"
+        f"Привет, <b>{name}</b>! Я в этом чате.\n\n"
+        f"<b>Админам</b>\n"
+        f"› <code>/settings</code> — настройки\n"
+        f"› <code>/commands</code> — каталог\n"
+        f"› <code>/ranks</code> — штат\n"
+        f"› <code>/rules</code> — правила\n"
+        f"› <code>/preset normal</code> — автомод\n"
+        f"{HR_LIGHT}\n"
+        f"🏠 Кабинет в ЛС: <code>/menu</code>"
     )
-    await message.reply(text, reply_markup=await start_kb(bot), disable_web_page_preview=True)
+    await message.reply(text, disable_web_page_preview=True)
 
 
 @router.message(Command("help", "modhelp", "справка"))
 async def cmd_help(message: Message):
     text = (
-        f"❓ <b>Справка {config.BOT_NAME}</b>\n"
+        f"❓ <b>Справка · {config.BOT_NAME}</b>\n"
         f"{HR}\n"
-        f"Команд в боте: <b>{len(COMMANDS)}</b>\n"
-        f"Выбери раздел — или открой полный каталог <code>/commands</code>"
+        f"В каталоге <b>{len(COMMANDS)}</b> команд.\n\n"
+        f"› Выбери раздел на клавиатуре\n"
+        f"› Полный список: <code>/commands</code>\n"
+        f"› Неизвестная команда — бот пришлёт подсказку\n"
+        f"{HR_LIGHT}\n"
+        f"<i>TitanMod help</i>"
     )
     await message.reply(text, reply_markup=help_kb())
 
@@ -81,7 +85,8 @@ async def help_cb(callback: CallbackQuery, bot: Bot):
     if cat == "home":
         await safe_edit(
             callback.message,
-            f"❓ <b>Справка {config.BOT_NAME}</b>\n{HR}\nКоманд: <b>{len(COMMANDS)}</b>\nВыбери раздел:",
+            f"❓ <b>Справка · {config.BOT_NAME}</b>\n{HR}\n"
+            f"Команд: <b>{len(COMMANDS)}</b>\nВыбери раздел:",
             help_kb(),
         )
         await callback.answer()
@@ -89,43 +94,52 @@ async def help_cb(callback: CallbackQuery, bot: Bot):
     title = CATEGORIES.get(cat, cat)
     em = CAT_EMOJI.get(cat, "•")
     bits = [f"{em} <b>{html_esc(title)}</b>", HR]
+    n = 0
     for cmd, c, desc in COMMANDS:
         if c != cat:
             continue
-        bits.append(f"• <code>/{html_esc(cmd)}</code> — {html_esc(desc)}")
-    bits.append(HR)
-    bits.append(f"<code>/commands {html_esc(cat)}</code>")
-    text = "\n".join(bits)
-    if len(text) > 3900:
-        text = text[:3890] + "…"
-    await safe_edit(callback.message, text, help_kb())
+        bits.append(f"› <code>/{cmd}</code> — {html_esc(desc)}")
+        n += 1
+        if n >= 25:
+            bits.append(f"<i>… и ещё в /commands</i>")
+            break
+    if n == 0:
+        bits.append("<i>Пусто</i>")
+    bits.append(HR_LIGHT)
+    bits.append("<i>Назад — кнопка «Справка»</i>")
+    b = InlineKeyboardBuilder()
+    b.row(InlineKeyboardButton(text="« К разделам", callback_data="help:home"))
+    await safe_edit(callback.message, "\n".join(bits), b.as_markup())
     await callback.answer()
-
-
-def about_text() -> str:
-    return (
-        f"✦ <b>{config.BOT_NAME}</b> <code>{config.VERSION}</code>\n"
-        f"{HR}\n"
-        f"Стек: Python · aiogram 3 · SQLite\n"
-        f"Разделов: {len(CATEGORIES)} · команд: {len(ALL_COMMAND_NAMES)}\n"
-        f"Данные живут у тебя в файле базы, никуда не улетают.\n"
-        f"{HR}\n"
-        f"<code>/commands</code> · <code>/privacy</code> · <code>/settings</code>"
-    )
 
 
 @router.message(Command("about", "version", "о"))
 async def cmd_about(message: Message, bot: Bot):
-    await message.reply(about_text(), reply_markup=await start_kb(bot))
+    await message.reply(about_text(), reply_markup=await start_kb(bot), disable_web_page_preview=True)
 
 
 @router.message(Command("privacy", "приваси"))
 async def cmd_privacy(message: Message):
     await message.reply(
         card(
-            "🔒 Приватность",
-            "Храню: id чатов и людей, настройки, варны, заметки, логи наказаний.\n"
-            "Не продаю и не скармливаю рекламе.\n"
-            "Админ чата может сбросить конфиг: <code>/resetchat</code>",
+            "Приватность",
+            "Бот хранит настройки чатов, варны, ранги и экономику в локальной SQLite.\n"
+            "Сообщения пользователей не логируются целиком (кроме антиспам-кэша snipe в RAM).",
+            footer="TitanMod",
+            emoji="🔐",
         )
     )
+
+
+@router.message(F.text.regexp(r"^/[A-Za-zа-яА-ЯёЁ0-9_]+"))
+async def cmd_unknown(message: Message):
+    """Fallback for unknown slash-commands."""
+    text = (message.text or "").strip()
+    if not text.startswith("/"):
+        return
+    raw = text[1:].split()[0].split("@")[0].lower()
+    if raw in ALL_COMMAND_NAMES:
+        return
+    if len(raw) > 40:
+        return
+    await message.reply(unknown_command(raw), disable_web_page_preview=True)

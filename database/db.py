@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import aiosqlite
@@ -10,11 +10,33 @@ from config import config
 from core.defaults import DEFAULT_SETTINGS
 from database.schema import SCHEMA
 
-DB_PATH = config.DB_PATH
+
+def _resolve_db_path() -> str:
+    raw = os.getenv("DB_PATH") or config.DB_PATH or "data/moderation_bot.db"
+    path = os.path.abspath(raw)
+    folder = os.path.dirname(path)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    return path
+
+
+DB_PATH = _resolve_db_path()
 
 
 def _now() -> str:
-    return datetime.utcnow().isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+async def _durable_commit(db) -> None:
+    """Commit and hint WAL to flush to the main DB file."""
+    await db.commit()
+    try:
+        await db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    except Exception:
+        try:
+            await db.execute("PRAGMA wal_checkpoint(PASSIVE)")
+        except Exception:
+            pass
 
 
 def _merge_settings(raw: Any) -> dict:
@@ -32,17 +54,40 @@ def _merge_settings(raw: Any) -> dict:
 
 
 async def init_db():
-    folder = os.path.dirname(DB_PATH)
-    if folder:
-        os.makedirs(folder, exist_ok=True)
+    global DB_PATH
+    DB_PATH = _resolve_db_path()
+    # keep extra module on the same file
+    try:
+        import database.extra as extra_mod
+        extra_mod.DB_PATH = DB_PATH
+    except Exception:
+        pass
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("PRAGMA journal_mode=WAL")
+        await db.execute("PRAGMA synchronous=NORMAL")
         await db.execute("PRAGMA foreign_keys=ON")
+        await db.execute("PRAGMA busy_timeout=5000")
         for stmt in SCHEMA:
             await db.execute(stmt)
-        await db.commit()
+        await _durable_commit(db)
     from database.extra import init_extra
     await init_extra()
+    await migrate_chat_settings()
+
+
+async def migrate_chat_settings():
+    """Merge DEFAULT_SETTINGS into every chat so new keys appear after upgrades."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute("SELECT chat_id, settings FROM chats")
+        rows = await cur.fetchall()
+        for row in rows:
+            merged = _merge_settings(row["settings"])
+            await db.execute(
+                "UPDATE chats SET settings=?, updated_at=? WHERE chat_id=?",
+                (json.dumps(merged, ensure_ascii=False), _now(), row["chat_id"]),
+            )
+        await db.commit()
 
 
 async def _conn():
@@ -165,22 +210,32 @@ async def update_chat_meta(chat_id: int, **kwargs):
 
 
 async def update_settings(chat_id: int, **kwargs):
+    """Persist chat settings. Always ensures the chat row exists."""
+    await ensure_chat(chat_id)
     settings = await get_settings(chat_id)
     settings.update(kwargs)
+    payload = json.dumps(settings, ensure_ascii=False)
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
+        cur = await db.execute(
             "UPDATE chats SET settings=?, updated_at=? WHERE chat_id=?",
-            (json.dumps(settings, ensure_ascii=False), _now(), chat_id),
+            (payload, _now(), chat_id),
         )
-        await db.commit()
+        if cur.rowcount == 0:
+            # Race: chat disappeared — insert fresh
+            await db.execute(
+                "INSERT INTO chats (chat_id, title, settings) VALUES (?, ?, ?)",
+                (chat_id, "Unknown", payload),
+            )
+        await _durable_commit(db)
     return settings
 
 
 async def reset_settings(chat_id: int):
+    await ensure_chat(chat_id)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            "UPDATE chats SET settings=? WHERE chat_id=?",
-            (json.dumps(DEFAULT_SETTINGS, ensure_ascii=False), chat_id),
+            "UPDATE chats SET settings=?, updated_at=? WHERE chat_id=?",
+            (json.dumps(DEFAULT_SETTINGS, ensure_ascii=False), _now(), chat_id),
         )
         await db.commit()
 
@@ -727,7 +782,7 @@ async def track_join(chat_id, window: int) -> int:
 # ==================== STATS / LOGS ====================
 
 async def bump_stat(chat_id, field: str, amount: int = 1):
-    date = datetime.utcnow().strftime("%Y-%m-%d")
+    date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     allowed = {"messages", "joins", "leaves", "warns", "bans", "mutes", "kicks", "deleted"}
     if field not in allowed:
         return

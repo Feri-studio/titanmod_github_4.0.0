@@ -46,6 +46,24 @@ async def resolve_user(message: Message, bot: Bot, args: str):
             return member.user, rest
         except Exception:
             return user, rest
+    # Try @username via Telegram API
+    token = (args or "").strip().split(maxsplit=1)
+    if token and token[0].startswith("@"):
+        uname = token[0].lstrip("@")
+        leftover = token[1] if len(token) > 1 else ""
+        try:
+            chat = await bot.get_chat(f"@{uname}")
+            if getattr(chat, "type", None) == "private" or getattr(chat, "id", None):
+                u = User(
+                    id=chat.id,
+                    is_bot=bool(getattr(chat, "is_bot", False)),
+                    first_name=getattr(chat, "first_name", None) or uname,
+                    last_name=getattr(chat, "last_name", None),
+                    username=getattr(chat, "username", None) or uname,
+                )
+                return u, leftover
+        except Exception:
+            pass
     if message.reply_to_message and message.reply_to_message.from_user:
         return message.reply_to_message.from_user, rest
     return None, rest
@@ -60,6 +78,15 @@ async def ensure_can_act(bot: Bot, message: Message, target: User) -> str | None
         return "Нельзя применить это к себе."
     if await admin_cache.is_admin(bot, message.chat.id, target.id):
         return "Нельзя наказать администратора."
+    # Rank hierarchy: cannot punish equal/higher rank
+    try:
+        from core.ranks import effective_rank
+        actor = await effective_rank(bot, message.chat.id, message.from_user.id)
+        victim = await effective_rank(bot, message.chat.id, target.id)
+        if victim >= actor and victim > 0:
+            return "Нельзя наказать участника с равным или более высоким рангом."
+    except Exception:
+        pass
     return None
 
 

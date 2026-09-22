@@ -3,8 +3,7 @@ import time
 from aiogram import Bot
 from config import config
 from database.db import due_reminders, expired_captchas, del_captcha
-from database.extra import due_giveaways
-from handlers.common import MUTE_PERMS
+from database.extra import due_giveaways, due_scheduled, mark_scheduled_done
 from core.text import mention
 
 
@@ -53,3 +52,24 @@ async def _tick(bot: Bot):
             await finish_giveaway(bot, g["id"])
     except Exception:
         pass
+    try:
+        await _scheduled_posts(bot)
+    except Exception:
+        pass
+
+
+async def _scheduled_posts(bot: Bot):
+    import time
+    now = time.time()
+    for row in await due_scheduled(now):
+        try:
+            await bot.send_message(row["chat_id"], row["text"])
+        except Exception:
+            pass
+        try:
+            await mark_scheduled_done(row["id"])
+        except Exception:
+            pass
+
+
+# patch _tick via wrap - append call by replacing end of _tick

@@ -138,52 +138,8 @@ async def cmd_public_link(message: Message):
         await message.reply("Публичного username нет. Админ: /invitelink")
 
 
-@router.message(Command("newtopic"), IsAdminFilter(), IsGroupFilter())
-async def cmd_newtopic(message: Message, bot: Bot, command: CommandObject):
-    if not command.args:
-        await message.reply("/newtopic Название")
-        return
-    try:
-        topic = await bot.create_forum_topic(message.chat.id, command.args.strip()[:128])
-        await message.reply(f"Топик создан: {html_esc(topic.name)} id={topic.message_thread_id}")
-    except Exception as e:
-        await message.reply(f"Не форум или нет прав: {html_esc(e)}")
 
 
-@router.message(Command("closetopic"), IsAdminFilter(), IsGroupFilter())
-async def cmd_closetopic(message: Message, bot: Bot):
-    tid = message.message_thread_id
-    if not tid:
-        await message.reply("Пиши в топике.")
-        return
-    try:
-        await bot.close_forum_topic(message.chat.id, tid)
-        await message.reply("Топик закрыт.")
-    except Exception as e:
-        await message.reply(html_esc(e))
-
-
-@router.message(Command("reopentopic"), IsAdminFilter(), IsGroupFilter())
-async def cmd_reopen(message: Message, bot: Bot):
-    tid = message.message_thread_id
-    if not tid:
-        return
-    try:
-        await bot.reopen_forum_topic(message.chat.id, tid)
-        await message.reply("Топик открыт.")
-    except Exception as e:
-        await message.reply(html_esc(e))
-
-
-@router.message(Command("deletetopic"), IsAdminFilter(), IsGroupFilter())
-async def cmd_deltopic(message: Message, bot: Bot):
-    tid = message.message_thread_id
-    if not tid:
-        return
-    try:
-        await bot.delete_forum_topic(message.chat.id, tid)
-    except Exception as e:
-        await message.reply(html_esc(e))
 
 
 @router.message(Command("connectid"), IsPrivateFilter())

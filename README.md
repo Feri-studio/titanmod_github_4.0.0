@@ -1,124 +1,109 @@
-# TitanMod
+# TitanMod 4.5
 
-Модерационный бот для Telegram. Python 3.10+ · aiogram 3 · SQLite · **v3.1.0**
+Telegram-бот модерации на **aiogram 3** + **SQLite**: баны, варны, замки, ранги, экономика, тикеты, личный кабинет.
 
-Групповой бот уровня Rose/GroupHelp: наказания, варны, 40+ замков контента, капча, антирейд, федерации, заметки, автоответы, логи, ночной режим, force-sub, XP, розыгрыши.
+## За 5 минут
 
-## Загрузить с GitHub
+### 1. Токен
+1. Открой [@BotFather](https://t.me/BotFather) → `/newbot` → скопируй токен.
+2. Узнай свой id: [@userinfobot](https://t.me/userinfobot).
 
+### 2. Настройка
 ```bash
-git clone https://github.com/YOUR_USERNAME/titanmod.git
-cd titanmod
-python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
+cd titanmod_github
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Открой `.env` и вставь:
+Файл `.env`:
+```env
+BOT_TOKEN=123456:ABCDEF...
+BOT_ADMINS=123456789
+# опционально:
+# DB_PATH=data/moderation_bot.db
+# LOG_LEVEL=INFO
+```
 
-- `BOT_TOKEN` — токен от [@BotFather](https://t.me/BotFather)
-- `BOT_ADMINS` — твой Telegram id (узнать: [@userinfobot](https://t.me/userinfobot))
-
+### 3. Запуск
 ```bash
 python bot.py
 ```
 
-Добавь бота в группу **админом** (удаление сообщений + блокировка пользователей) и напиши `/commands`.
-
-### Docker
-
+Или Docker:
 ```bash
-cp .env.example .env   # заполни токен
 docker compose up -d --build
 ```
+Данные БД: том `./data` → `data/moderation_bot.db`.
 
-## Как выложить этот проект на GitHub
+### 4. Группа (обязательно)
+1. Добавь бота в группу / супергруппу.
+2. Сделай **администратором** с правами:
+   - удаление сообщений;
+   - блокировка пользователей;
+   - ограничение участников.
+3. Напиши в группе `/start` или `/settings`.
 
-1. На [github.com/new](https://github.com/new) создай репозиторий (например `titanmod`). **Не** добавляй README/License — они уже в проекте.
-2. В папке бота:
+Без прав админа команды `/ban` `/mute` `/freeze` **не смогут** выполниться (это лимит Telegram, не баг кода).
+
+## Что умеет
+
+| Раздел | Примеры |
+|--------|---------|
+| Наказания | `/ban` `/tban` `/mute` `/kick` `/warn` |
+| Правила | `/setrules` `/rules` |
+| Ранги 0–7 | `/setrank` `/myrank` `/stafflist` |
+| Экономика | `/daily` `/work` `/shop` `/pay` |
+| Тикеты | `/ticket` `/reply` `/close` |
+| ЛС-кабинет | `/menu` |
+| Утилиты | `/wiki` `/weather` `/snipe` `/qr` |
+| 4.5 | `/preset` `/rep` `/schedule` `/siege` `/forcesub` `/inventory` |
+
+Полный список **только реально подключённых** команд: `/commands`.
+
+## Ранги
+
+Штат бота (параллельно с Telegram-админами):
+
+- 0 member → 7 owner  
+- Права на `/ban` `/mute` и т.д. задаются уровнем ранга **или** статусом TG-админа.  
+- Нельзя наказать равный/более высокий ранг.
+
+## Бэкап
 
 ```bash
-git init
-git add .
-git commit -m "Initial commit: TitanMod"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/titanmod.git
-git push -u origin main
+cp data/moderation_bot.db data/backup-$(date +%F).db
 ```
 
-Либо через GitHub CLI:
+В Docker копируй `./data/`.
+
+## Частые проблемы
+
+| Симптом | Что сделать |
+|---------|-------------|
+| «Нет BOT_TOKEN» | Заполни `.env` |
+| Бан/мут не работает | Выдай боту права админа в чате |
+| Snipe пустой | Бот видит только сообщения после своего запуска |
+| tagall / unbanall | Ограничение Bot API — смотри ответ бота |
+| Рестарт сбросил snipe | Кэш в RAM, это нормально |
+
+## Разработка
 
 ```bash
-gh repo create titanmod --public --source=. --remote=origin --push
+python -m pytest tests/ -q
 ```
 
-**Не пушь `.env`.** Токен только локально. Если токен уже светился в чате — сразу Revoke в BotFather.
+Версия: файл `VERSION` (сейчас 4.5.0).
 
-CI (GitHub Actions) прогонит compile + тесты на Python 3.10–3.12 при каждом push.
-
-## Быстрый старт (без git)
-
-```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-python bot.py
-```
-
-## Возможности (модули)
-
-| Модуль | Команды (часть) |
-|--------|-----------------|
-| Наказания | `/ban` `/tban` `/sban` `/dban` `/unban` `/kick` `/dkick` `/mute` `/tmute` `/smute` `/unmute` `/ro` `/rw` |
-| Варны | `/warn` `/dwarn` `/unwarn` `/warns` `/resetwarns` `/setwarnlimit` `/warnmode` |
-| Замки | `/lock` `/unlock` `/locks` `/locktypes` + 40 типов |
-| Антифлуд | `/setflood` `/flood` `/floodmode` `/setfloodtime` |
-| ЧС / БС | `/addbadword` `/badwords` `/blacklistmode` `/addwhite` `/whitelist` `/blsticker` |
-| Вход | `/setwelcome` `/welcome` `/setgoodbye` `/captcha` `/captchamode` `/captchatime` |
-| Правила | `/setrules` `/rules` `/privaterules` |
-| Заметки | `/save` `/get` `/notes` `/clear` `#имя` кнопки `&&` |
-| Фильтры | `/filter` `/stop` `/filters` `/stopall` |
-| Федерации | `/newfed` `/joinfed` `/fban` `/unfban` `/fedinfo` `/fpromote` |
-| Безопасность | `/raid` `/setraid` `/forcesub` `/antichannel` `/nightmode` `/lockdown` `/approve` `/report` |
-| Админка | `/promote` `/demote` `/adminlist` `/pin` `/purge` `/del` `/settings` `/export` |
-| Связь ЛС | `/connect` `/disconnect` `/connectid` `/connection` |
-| Инфо | `/id` `/info` `/ginfo` `/history` `/punishments` `/stats` `/usernote` |
-| Утилиты | `/ping` `/uptime` `/afk` `/remind` `/rep` `/calc` `/hash` `/tr` `/commands` |
-| Fun | `/coin` `/joke` `/ship` `/hug` `/mock` … выкл в `/settings` |
-| Владелец бота | `/gban` `/ungban` `/chatlist` `/broadcast` `/leave` `/botstats` |
-| Форум | `/newtopic` `/closetopic` `/reopentopic` `/renametopic` `/deletetopic` |
-| Файлы | `/maxfile` `/blockext` `/fileid` |
-| XP | `/xp` `/rank` `/toplevel` `/setxp` `/xprate` |
-| Розыгрыши | `/gstart 1h 1 приз` `/gend` |
-| Карантин | `/quarantine` `/unquarantine` `/watch` `/watching` |
-| Бэкап | `/backup` `/importbackup` `/dumpsettings` |
-| Алиасы | `/addalias` `/aliases` |
-| Массовые | `/muteall` `/unmuteallchat` |
-
-Полный список: `/commands` и `/help`. Каталог в `core/commands.py`.
-
-## Замки (`/locktypes`)
-
-`messages media photo video audio voice video_note document sticker gif url forwards forwards_channel games inline poll location contact dice premium spoiler hashtag mention cashtag command rtl zalgo cyrillic latin arabic chinese emoji button invoice invite email phone tg channel bots via caption entities quote all`
-
-Пример: `/lock url` запрещает ссылки обычным участникам. Админы и `/approve` пользователи не фильтруются.
-
-## Приветствие — переменные
-
-`{user}` `{name}` `{first}` `{last}` `{chat}` `{id}` `{username}` `{count}` `{date}` `{rules}`
-
-Капча: `button` (кнопка), `math` (пример в чат), `emoji` (нажать нужный). Истёкшие капчи кикаются планировщиком.
-
-## Заметки и кнопки
+## Структура
 
 ```
-/save hello Привет && Сайт=https://example.com && Чат=https://t.me/xxx
+bot.py              — точка входа
+config.py           — env
+handlers/           — команды
+database/           — SQLite
+core/               — ranks, style, commands catalog
+middlewares/        — flood, context, snipe track
+data/               — moderation_bot.db
 ```
-
-Вызов: `#hello` или `/get hello`.
-
-## Лицензия
-
-MIT. См. [LICENSE](LICENSE) и [SECURITY.md](SECURITY.md).

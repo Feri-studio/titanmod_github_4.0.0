@@ -6,21 +6,23 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from config import config
 from core.commands import COMMANDS, CATEGORIES, HELP_TEXT, ALL_COMMAND_NAMES
-from core.style import HR, CAT_EMOJI, card, safe_edit
+from core.style import HR, HR_LIGHT, CAT_EMOJI, card, safe_edit
 from core.text import html_esc
 
 router = Router()
 PAGE = 12
 
 PUBLIC_MENU = [
+    ("menu", "Личный кабинет"),
     ("commands", "Каталог всех команд"),
     ("help", "Справка по разделам"),
     ("settings", "Настройки чата"),
+    ("ranks", "Система рангов"),
     ("rules", "Правила"),
     ("id", "ID чата и пользователя"),
     ("info", "Профиль пользователя"),
-    ("warns", "Предупреждения"),
-    ("staff", "Админы чата"),
+    ("stafflist", "Штат чата"),
+    ("daily", "Ежедневная награда"),
     ("xp", "Уровень активности"),
     ("ping", "Проверка бота"),
 ]
@@ -63,6 +65,11 @@ def catalog_kb(cat: str, page: int, total: int, query: str = "") -> InlineKeyboa
         "fed": "🕸 Фед",
         "sec": "🛡 Сек",
         "admin": "⚙️ Админ",
+        "ranks": "🏅 Ранги",
+        "economy": "💰 Эко",
+        "cabinet": "🏠 ЛК",
+        "tickets": "🎫 Тикеты",
+        "xp": "✨ XP",
         "info": "ℹ️ Инфо",
         "util": "🧰 Утил",
         "fun": "🎮 Fun",

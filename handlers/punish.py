@@ -2,11 +2,13 @@ from datetime import datetime, timedelta
 from aiogram import Router, Bot, F
 from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
-from filters.admin import IsAdminFilter, IsGroupFilter
-from core.style import action_card, fail
+from filters.admin import IsGroupFilter
+from filters.rank import RankOrAdminFilter
+from core.style import action_card, fail, need_reply, bad_args
 from core.text import mention, html_esc
 from core.timeparse import format_time
 from database.db import add_punishment, bump_stat
+from database.extra import bump_mod_stat
 from handlers.common import (
     resolve_user, ensure_can_act, do_ban, do_mute, do_unmute, log_action, parse_time_reason, FREE_PERMS,
 )
@@ -25,17 +27,17 @@ def _usage_ban():
     )
 
 
-@router.message(Command("ban", "бан"), IsAdminFilter())
+@router.message(Command("ban", "бан"), RankOrAdminFilter("ban"))
 async def cmd_ban(message: Message, bot: Bot, command: CommandObject):
     await _ban(message, bot, command.args or "", silent=False, delete=False, force_time=False)
 
 
-@router.message(Command("sban", "сбан"), IsAdminFilter())
+@router.message(Command("sban", "сбан"), RankOrAdminFilter("ban"))
 async def cmd_sban(message: Message, bot: Bot, command: CommandObject):
     await _ban(message, bot, command.args or "", silent=True, delete=False, force_time=False)
 
 
-@router.message(Command("dban", "дбан"), IsAdminFilter())
+@router.message(Command("dban", "дбан"), RankOrAdminFilter("ban"))
 async def cmd_dban(message: Message, bot: Bot, command: CommandObject):
     await _ban(message, bot, command.args or "", silent=False, delete=True, force_time=False)
     if message.reply_to_message:
@@ -45,7 +47,7 @@ async def cmd_dban(message: Message, bot: Bot, command: CommandObject):
             pass
 
 
-@router.message(Command("tban", "тбан"), IsAdminFilter())
+@router.message(Command("tban", "тбан"), RankOrAdminFilter("ban"))
 async def cmd_tban(message: Message, bot: Bot, command: CommandObject):
     await _ban(message, bot, command.args or "", silent=False, delete=False, force_time=True)
 
@@ -55,7 +57,7 @@ async def _ban(message, bot, args, silent, delete, force_time):
     err = await ensure_can_act(bot, message, user)
     if err:
         if not silent:
-            await message.reply(err if user else _usage_ban())
+            await message.reply(err if user else need_reply("ban"))
         return
     seconds, reason, tstr = parse_time_reason(rest, 0)
     until = None
@@ -65,6 +67,10 @@ async def _ban(message, bot, args, silent, delete, force_time):
         until = datetime.utcnow() + timedelta(seconds=seconds)
         extra = f"Срок: {format_time(seconds)}"
     try:
+        try:
+            await bump_mod_stat(message.chat.id, message.from_user.id, "ban")
+        except Exception:
+            pass
         await do_ban(bot, message.chat.id, user.id, until)
         await add_punishment(message.chat.id, user.id, message.from_user.id, "ban", reason, extra)
         await bump_stat(message.chat.id, "bans")
@@ -78,10 +84,14 @@ async def _ban(message, bot, args, silent, delete, force_time):
                 pass
     except Exception as e:
         if not silent:
-            await message.reply(fail(f"Не удалось забанить: {html_esc(e)}"))
+            err = str(e)
+            if "not enough rights" in err.lower() or "can't restrict" in err.lower() or "CHAT_ADMIN_REQUIRED" in err:
+                await message.reply("❌ Боту не хватает прав админа в этом чате (Ban users / Restrict).")
+                return
+            await message.reply(f"Ошибка: {err}")
 
 
-@router.message(Command("unban", "разбан"), IsAdminFilter())
+@router.message(Command("unban", "разбан"), RankOrAdminFilter("ban"))
 async def cmd_unban(message: Message, bot: Bot, command: CommandObject):
     user, rest = await resolve_user(message, bot, command.args or "")
     if not user:
@@ -96,12 +106,12 @@ async def cmd_unban(message: Message, bot: Bot, command: CommandObject):
         await message.reply(f"Ошибка: {html_esc(e)}")
 
 
-@router.message(Command("kick", "кик"), IsAdminFilter())
+@router.message(Command("kick", "кик"), RankOrAdminFilter("kick"))
 async def cmd_kick(message: Message, bot: Bot, command: CommandObject):
     await _kick(message, bot, command.args or "", delete=False)
 
 
-@router.message(Command("dkick"), IsAdminFilter())
+@router.message(Command("dkick"), RankOrAdminFilter("kick"))
 async def cmd_dkick(message: Message, bot: Bot, command: CommandObject):
     await _kick(message, bot, command.args or "", delete=True)
     if message.reply_to_message:
@@ -144,12 +154,12 @@ async def cmd_banme(message: Message, bot: Bot):
     await cmd_kickme(message, bot)
 
 
-@router.message(Command("mute", "мут", "tmute", "тмут"), IsAdminFilter())
+@router.message(Command("mute", "мут", "tmute", "тмут"), RankOrAdminFilter("mute"))
 async def cmd_mute(message: Message, bot: Bot, command: CommandObject):
     await _mute(message, bot, command.args or "", silent=False)
 
 
-@router.message(Command("smute"), IsAdminFilter())
+@router.message(Command("smute"), RankOrAdminFilter("mute"))
 async def cmd_smute(message: Message, bot: Bot, command: CommandObject):
     await _mute(message, bot, command.args or "", silent=True)
 
@@ -173,10 +183,14 @@ async def _mute(message, bot, args, silent):
             await message.reply(action_card("🔇 Мут", user, message.from_user, reason, extra))
     except Exception as e:
         if not silent:
+            err = str(e)
+            if "not enough rights" in err.lower() or "can't restrict" in err.lower() or "CHAT_ADMIN_REQUIRED" in err:
+                await message.reply("❌ Боту не хватает прав админа в этом чате (Ban users / Restrict).")
+                return
             await message.reply(f"Ошибка: {html_esc(e)}")
 
 
-@router.message(Command("unmute", "размут", "rw"), IsAdminFilter())
+@router.message(Command("unmute", "размут", "rw"), RankOrAdminFilter("mute"))
 async def cmd_unmute(message: Message, bot: Bot, command: CommandObject):
     user, rest = await resolve_user(message, bot, command.args or "")
     if not user:
@@ -190,7 +204,7 @@ async def cmd_unmute(message: Message, bot: Bot, command: CommandObject):
         await message.reply(f"Ошибка: {html_esc(e)}")
 
 
-@router.message(Command("ro", "readonly"), IsAdminFilter())
+@router.message(Command("ro", "readonly"), RankOrAdminFilter("mute"))
 async def cmd_ro(message: Message, bot: Bot, command: CommandObject):
     user, rest = await resolve_user(message, bot, command.args or "")
     err = await ensure_can_act(bot, message, user)
@@ -205,6 +219,6 @@ async def cmd_ro(message: Message, bot: Bot, command: CommandObject):
         await message.reply(f"Ошибка: {html_esc(e)}")
 
 
-@router.message(Command("restrict"), IsAdminFilter())
+@router.message(Command("restrict"), RankOrAdminFilter("mute"))
 async def cmd_restrict(message: Message, bot: Bot, command: CommandObject):
     await cmd_ro(message, bot, command)

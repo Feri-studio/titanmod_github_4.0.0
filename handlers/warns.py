@@ -2,10 +2,12 @@ from datetime import datetime, timedelta
 from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
-from filters.admin import IsAdminFilter, IsGroupFilter
+from filters.admin import IsGroupFilter
+from filters.rank import RankOrAdminFilter
 from core.style import action_card, HR
 from core.text import mention, html_esc
 from core.timeparse import format_time, parse_time
+from database.extra import bump_mod_stat
 from database.db import (
     add_warn, remove_warn, get_warns, get_warns_count, clear_warns,
     add_punishment, bump_stat, get_settings, update_settings, ensure_chat,
@@ -45,7 +47,7 @@ async def apply_warn_limit(bot, message, target, count, settings):
     return True
 
 
-@router.message(Command("warn", "варн", "пред", "dwarn"), IsAdminFilter())
+@router.message(Command("warn", "варн", "пред", "dwarn"), RankOrAdminFilter("warn"))
 async def cmd_warn(message: Message, bot: Bot, command: CommandObject):
     user, rest = await resolve_user(message, bot, command.args or "")
     err = await ensure_can_act(bot, message, user)
@@ -60,6 +62,10 @@ async def cmd_warn(message: Message, bot: Bot, command: CommandObject):
             pass
     settings = await get_settings(message.chat.id)
     limit = int(settings.get("warn_limit", 3) or 3)
+    try:
+        await bump_mod_stat(message.chat.id, message.from_user.id, "warn")
+    except Exception:
+        pass
     count = await add_warn(message.chat.id, user.id, message.from_user.id, reason)
     await add_punishment(message.chat.id, user.id, message.from_user.id, "warn", reason)
     await bump_stat(message.chat.id, "warns")
@@ -68,7 +74,7 @@ async def cmd_warn(message: Message, bot: Bot, command: CommandObject):
     await apply_warn_limit(bot, message, user, count, settings)
 
 
-@router.message(Command("unwarn", "снятьварн"), IsAdminFilter())
+@router.message(Command("unwarn", "снятьварн"), RankOrAdminFilter("warn"))
 async def cmd_unwarn(message: Message, bot: Bot, command: CommandObject):
     user, _ = await resolve_user(message, bot, command.args or "")
     if not user:
@@ -78,7 +84,7 @@ async def cmd_unwarn(message: Message, bot: Bot, command: CommandObject):
     await message.reply(f"Снято 1 предупреждение у {mention(user)}. Осталось: {count}")
 
 
-@router.message(Command("warns", "варны"), IsAdminFilter())
+@router.message(Command("warns", "варны"), RankOrAdminFilter("warn"))
 async def cmd_warns(message: Message, bot: Bot, command: CommandObject):
     user, _ = await resolve_user(message, bot, command.args or "")
     if not user:
@@ -94,7 +100,7 @@ async def cmd_warns(message: Message, bot: Bot, command: CommandObject):
     await message.reply("\n".join(lines))
 
 
-@router.message(Command("clearwarns", "resetwarns", "очиститьварны"), IsAdminFilter())
+@router.message(Command("clearwarns", "resetwarns", "очиститьварны"), RankOrAdminFilter("warn"))
 async def cmd_clear(message: Message, bot: Bot, command: CommandObject):
     user, _ = await resolve_user(message, bot, command.args or "")
     if not user:
@@ -104,7 +110,7 @@ async def cmd_clear(message: Message, bot: Bot, command: CommandObject):
     await message.reply(f"Все предупреждения {mention(user)} очищены.")
 
 
-@router.message(Command("setwarnlimit"), IsAdminFilter())
+@router.message(Command("setwarnlimit"), RankOrAdminFilter("warn"))
 async def cmd_setwarnlimit(message: Message, command: CommandObject):
     if not command.args or not command.args.strip().isdigit():
         await message.reply("Использование: <code>/setwarnlimit 3</code>")
@@ -115,7 +121,7 @@ async def cmd_setwarnlimit(message: Message, command: CommandObject):
     await message.reply(f"Лимит предупреждений: {n}")
 
 
-@router.message(Command("warnmode"), IsAdminFilter())
+@router.message(Command("warnmode"), RankOrAdminFilter("warn"))
 async def cmd_warnmode(message: Message, command: CommandObject):
     arg = (command.args or "").strip().lower()
     if arg not in ("ban", "mute", "kick", "tban", "tmute"):

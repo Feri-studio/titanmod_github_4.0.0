@@ -314,4 +314,79 @@ SCHEMA = [
     """
     CREATE INDEX IF NOT EXISTS idx_reminders_fire ON reminders(fire_at)
     """,
+    # ── TitanMod 4.0: Rank hierarchy ──
+    """
+    CREATE TABLE IF NOT EXISTS user_ranks (
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        rank_level INTEGER NOT NULL DEFAULT 0,
+        custom_title TEXT,
+        set_by INTEGER,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (chat_id, user_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS rank_titles (
+        chat_id INTEGER NOT NULL,
+        rank_level INTEGER NOT NULL,
+        custom_name TEXT NOT NULL,
+        PRIMARY KEY (chat_id, rank_level)
+    )
+    """,
+    # ── Personal cabinet / preferences ──
+    """
+    CREATE TABLE IF NOT EXISTS user_prefs (
+        user_id INTEGER PRIMARY KEY,
+        lang TEXT DEFAULT 'ru',
+        notify_punish INTEGER DEFAULT 1,
+        notify_levelup INTEGER DEFAULT 1,
+        theme TEXT DEFAULT 'default',
+        menu_hint INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+    # ── Economy (coins) ──
+    """
+    CREATE TABLE IF NOT EXISTS economy (
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        balance INTEGER DEFAULT 0,
+        total_earned INTEGER DEFAULT 0,
+        total_spent INTEGER DEFAULT 0,
+        last_daily TEXT,
+        streak INTEGER DEFAULT 0,
+        PRIMARY KEY (chat_id, user_id)
+    )
+    """,
+    # ── Tickets / support ──
+    """
+    CREATE TABLE IF NOT EXISTS tickets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER,
+        user_id INTEGER NOT NULL,
+        status TEXT DEFAULT 'open',
+        subject TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        closed_at TEXT,
+        closed_by INTEGER
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS ticket_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticket_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        text TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_ranks_user ON user_ranks(chat_id, user_id)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_economy_user ON economy(chat_id, user_id)
+    """,
 ]
