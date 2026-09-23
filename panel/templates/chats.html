@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Чаты · TitanMod{% endblock %}
+{% block content %}
+<h1>Чаты</h1>
+<div class="table-wrap"><table>
+  <tr><th>ID</th><th>Название</th><th>Тип</th><th>Act</th><th>Members</th><th></th></tr>
+  {% for c in chats %}
+  <tr>
+    <td><code>{{ c.chat_id }}</code></td>
+    <td>{{ c.title or '—' }}</td>
+    <td>{{ c.chat_type }}</td>
+    <td>{% if c._s.get('group_activated') %}<span class="pill on">ON</span>{% else %}<span class="pill off">OFF</span>{% endif %}</td>
+    <td>{{ c.members or 0 }}</td>
+    <td><a href="/chats/{{ c.chat_id }}">открыть</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6">Пусто — бот ещё не видел групп</td></tr>
+  {% endfor %}
+</table></div>
+{% endblock %}

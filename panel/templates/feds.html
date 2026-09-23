@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Федерации{% endblock %}
+{% block content %}
+<h1>Федерации</h1>
+<table>
+  <tr>{% if feds %}{% for k in feds[0].keys() %}<th>{{ k }}</th>{% endfor %}{% else %}<th>—</th>{% endif %}</tr>
+  {% for r in feds %}
+  <tr>{% for v in r.values() %}<td>{{ v }}</td>{% endfor %}</tr>
+  {% else %}<tr><td>Нет федераций</td></tr>{% endfor %}
+</table>
+<h2>Fed bans</h2>
+<table>
+  <tr>{% if bans %}{% for k in bans[0].keys() %}<th>{{ k }}</th>{% endfor %}{% else %}<th>—</th>{% endif %}</tr>
+  {% for r in bans %}
+  <tr>{% for v in r.values() %}<td>{{ v }}</td>{% endfor %}</tr>
+  {% else %}<tr><td>Пусто</td></tr>{% endfor %}
+</table>
+{% endblock %}

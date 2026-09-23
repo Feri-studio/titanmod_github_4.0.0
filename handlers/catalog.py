@@ -14,16 +14,18 @@ PAGE = 12
 
 PUBLIC_MENU = [
     ("menu", "Личный кабинет"),
-    ("commands", "Каталог всех команд"),
+    ("commands", "Каталог команд с описаниями"),
     ("help", "Справка по разделам"),
     ("settings", "Настройки чата"),
     ("ranks", "Система рангов"),
-    ("rules", "Правила"),
-    ("id", "ID чата и пользователя"),
-    ("info", "Профиль пользователя"),
+    ("rules", "Правила чата"),
+    ("ban", "Бан пользователя"),
+    ("mute", "Мут пользователя"),
+    ("warn", "Предупреждение"),
     ("stafflist", "Штат чата"),
     ("daily", "Ежедневная награда"),
-    ("xp", "Уровень активности"),
+    ("shop", "Магазин"),
+    ("ticket", "Тикет в поддержку"),
     ("ping", "Проверка бота"),
 ]
 
@@ -97,7 +99,7 @@ def render_page(cat: str, page: int, query: str = "") -> tuple[str, InlineKeyboa
     em = CAT_EMOJI.get(cat, "📚")
     lines = [
         f"{em} <b>{html_esc(title)}</b>",
-        f"<i>TitanMod {config.VERSION} · {len(ALL_COMMAND_NAMES)} команд</i>",
+        f"<i>TitanMod {config.VERSION} · {len(ALL_COMMAND_NAMES)} команд с описаниями</i>",
         HR,
     ]
     if query:
@@ -108,7 +110,7 @@ def render_page(cat: str, page: int, query: str = "") -> tuple[str, InlineKeyboa
     else:
         for cmd, c, desc in chunk:
             e = CAT_EMOJI.get(c, "•")
-            lines.append(f"{e} <code>/{html_esc(cmd)}</code> — {html_esc(desc)}")
+            lines.append(f"{e} <b>/{html_esc(cmd)}</b> · {html_esc(desc)}")
     lines.append(HR)
     lines.append("Подсказка: <code>/commands мут</code> или <code>/commands punish</code>")
     text = "\n".join(lines)

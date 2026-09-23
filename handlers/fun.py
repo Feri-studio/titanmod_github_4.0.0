@@ -121,3 +121,17 @@ async def cmd_joke(message: Message):
 @router.message(Command("quote"))
 async def cmd_quote(message: Message):
     await message.reply("«" + random.choice(QUOTES) + "»")
+
+@router.message(Command("choose", "выбери"))
+async def cmd_choose(message: Message, command: CommandObject):
+    raw = (command.args or "").strip()
+    if not raw:
+        await message.reply("<code>/choose a | b | c</code>")
+        return
+    parts = [p.strip() for p in raw.replace(",", "|").split("|") if p.strip()]
+    if len(parts) < 2:
+        await message.reply("Нужно 2+ варианта")
+        return
+    import random
+    from core.text import html_esc
+    await message.reply(f"→ <b>{html_esc(random.choice(parts))}</b>")

@@ -1,4 +1,3 @@
-"""Deprecated — use punish.py / warns.py / admin_tools.py. Kept for reference only."""
+"""Deprecated — not loaded. Use admin_tools / settings / ranks."""
 from aiogram import Router
-
-router = Router()  # not included in bot.py
+router = Router()

@@ -8,6 +8,7 @@ from aiogram.filters import Command, CommandObject
 from core.style import HR, ok, fail
 from core.text import mention
 from database.extra import get_balance, add_coins, claim_daily, economy_top
+from core.anticheat import anticheat, MAX_PAY
 from handlers.common import resolve_user
 
 router = Router()
@@ -61,11 +62,15 @@ async def cmd_pay(message: Message, command: CommandObject, bot: Bot):
         await message.reply("Укажи сумму: <code>/pay 50</code>")
         return
     amount = int(parts[0])
-    if amount <= 0:
-        await message.reply(fail("Сумма должна быть > 0"))
+    ac = anticheat.check_pay(amount)
+    if not ac.ok:
+        await message.reply(fail(ac.reason))
         return
     if target.id == message.from_user.id:
         await message.reply(fail("Нельзя перевести себе"))
+        return
+    if target.is_bot:
+        await message.reply(fail("Нельзя переводить ботам"))
         return
     bal = await get_balance(message.chat.id, message.from_user.id)
     if bal < amount:

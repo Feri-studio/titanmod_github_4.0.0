@@ -24,14 +24,6 @@ async def cmd_raid(message: Message, command: CommandObject):
     await message.reply("Антирейд " + ("ВКЛЮЧЁН" if on else "выключен"))
 
 
-@router.message(Command("forcesub"), IsAdminFilter())
-async def cmd_forcesub(message: Message, command: CommandObject):
-    arg = (command.args or "on").strip().lower()
-    on = arg in ("on", "1", "да", "yes")
-    await update_settings(message.chat.id, force_sub=1 if on else 0)
-    await message.reply("Force-sub " + ("on. Задай канал: /setforcesub @channel" if on else "off"))
-
-
 @router.message(Command("setforcesub"), IsAdminFilter())
 async def cmd_setforcesub(message: Message, command: CommandObject):
     if not command.args:

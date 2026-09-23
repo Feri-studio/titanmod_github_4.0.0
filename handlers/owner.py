@@ -92,6 +92,3 @@ async def cmd_botstats(message: Message):
     await message.reply(f"{config.BOT_NAME} {config.VERSION}\nЧатов: {n}\nВладельцев: {len(config.ADMINS)}")
 
 
-@router.message(Command("echo"))
-async def cmd_echo(message: Message, command: CommandObject):
-    await message.reply(command.args or "…")

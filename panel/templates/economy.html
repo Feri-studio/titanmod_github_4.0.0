@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Экономика{% endblock %}
+{% block content %}
+<h1>Экономика</h1>
+<form method="post" action="/economy/set" class="row">
+  <input name="chat_id" type="number" required placeholder="chat_id">
+  <input name="user_id" type="number" required placeholder="user_id">
+  <input name="balance" type="number" required placeholder="balance">
+  <button type="submit">Установить баланс</button>
+</form>
+<table>
+  <tr><th>chat</th><th>user</th><th>balance</th><th>earned</th><th>spent</th><th>streak</th></tr>
+  {% for r in rows %}
+  <tr>
+    <td>{{ r.chat_id }}</td><td>{{ r.user_id }}</td><td><b>{{ r.balance }}</b></td>
+    <td>{{ r.total_earned or 0 }}</td><td>{{ r.total_spent or 0 }}</td><td>{{ r.streak or 0 }}</td>
+  </tr>
+  {% else %}<tr><td colspan="6">Пусто</td></tr>{% endfor %}
+</table>
+{% endblock %}

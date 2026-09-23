@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Настройки · TitanMod{% endblock %}
+{% block content %}
+<h1>Глобальные настройки бота</h1>
+<p class="muted">Только просмотр из config / env. Секреты (токен) не показываются.</p>
+<table>
+  {% for k, v in info.items() %}
+  <tr><th>{{ k }}</th><td><code>{{ v }}</code></td></tr>
+  {% endfor %}
+</table>
+<h2>Переменные .env для панели</h2>
+<ul>
+  <li><code>PANEL_PASSWORD</code> — пароль входа</li>
+  <li><code>DB_PATH</code> — путь к SQLite (тот же, что у бота)</li>
+  <li><code>ACTIVATE_CODE</code> — запасной пароль, если PANEL_PASSWORD пуст</li>
+</ul>
+<p><a href="/backup">Скачать backup БД</a></p>
+{% endblock %}

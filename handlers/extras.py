@@ -71,47 +71,6 @@ async def cmd_afk(message: Message, command: CommandObject):
     await message.reply(f"{mention(message.from_user)} теперь AFK: {html_esc(reason)}")
 
 
-@router.message(Command("rep", "+rep", "-rep"))
-async def cmd_rep(message: Message, bot, command: CommandObject):
-    if message.chat.type == "private":
-        return
-    s = await get_settings(message.chat.id)
-    if not s.get("reputation", 1):
-        return
-    raw = message.text or ""
-    delta = 1
-    if raw.startswith("/-rep") or raw.startswith("-rep"):
-        delta = -1
-    user, _ = await resolve_user(message, bot, command.args or "")
-    if not user:
-        db = await get_user(message.from_user.id)
-        await message.reply(f"Твоя репутация: {(db or {}).get('reputation', 0)}")
-        return
-    if user.id == message.from_user.id:
-        await message.reply("Нельзя менять себе репутацию.")
-        return
-    last = await last_rep_time(message.chat.id, message.from_user.id, user.id)
-    if last:
-        # simple cooldown skip parse
-        pass
-    val = await change_rep(message.chat.id, message.from_user.id, user.id, delta)
-    sign = "+" if delta > 0 else ""
-    await message.reply(f"{sign}{delta} реп {mention(user)} → {val}")
-
-
-@router.message(Command("reptop"))
-async def cmd_reptop(message: Message):
-    rows = await top_rep(10)
-    if not rows:
-        await message.reply("Пусто.")
-        return
-    lines = ["Топ репутации:"]
-    for i, r in enumerate(rows, 1):
-        name = html_esc(r.get("first_name") or r["user_id"])
-        lines.append(f"{i}. {name} — {r.get('reputation') or 0}")
-    await message.reply("\n".join(lines))
-
-
 @router.message(Command("remind"))
 async def cmd_remind(message: Message, command: CommandObject):
     if not command.args:
@@ -195,25 +154,6 @@ async def cmd_pass(message: Message, command: CommandObject):
     alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*"
     pwd = "".join(random.choice(alphabet) for _ in range(n))
     await message.reply(f"<code>{html_esc(pwd)}</code>")
-
-
-@router.message(Command("choose"))
-async def cmd_choose(message: Message, command: CommandObject):
-    if not command.args:
-        await message.reply("/choose а | б | в")
-        return
-    parts = re.split(r"\s*\|\s*|\s*,\s*", command.args)
-    parts = [p for p in parts if p]
-    if not parts:
-        return
-    await message.reply(html_esc(random.choice(parts)))
-
-
-@router.message(Command("reverse"))
-async def cmd_rev(message: Message, command: CommandObject):
-    t = command.args or (message.reply_to_message.text if message.reply_to_message else "")
-    if t:
-        await message.reply(html_esc(t[::-1]))
 
 
 @router.message(Command("say"), IsGroupFilter())

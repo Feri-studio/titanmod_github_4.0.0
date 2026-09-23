@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}TitanMod Panel{% endblock %}</title>
+  <link rel="stylesheet" href="/static/panel.css">
+</head>
+<body>
+{% if page %}
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">TitanMod<span>Admin Panel · v{{ ver }}</span></div>
+    <a href="/" class="{% if page=='dashboard' %}on{% endif %}">Dashboard</a>
+    <a href="/chats" class="{% if page=='chats' %}on{% endif %}">Чаты</a>
+    <a href="/search" class="{% if page=='search' %}on{% endif %}">Поиск</a>
+    <a href="/warns" class="{% if page=='warns' %}on{% endif %}">Варны</a>
+    <a href="/punishments" class="{% if page=='punishments' %}on{% endif %}">Наказания</a>
+    <a href="/gbans" class="{% if page=='gbans' %}on{% endif %}">Gban</a>
+    <a href="/ranks" class="{% if page=='ranks' %}on{% endif %}">Ранги</a>
+    <a href="/tickets" class="{% if page=='tickets' %}on{% endif %}">Тикеты</a>
+    <a href="/economy" class="{% if page=='economy' %}on{% endif %}">Экономика</a>
+    <div class="sep"></div>
+    <a href="/notes" class="{% if page=='notes' %}on{% endif %}">Notes</a>
+    <a href="/filters" class="{% if page=='filters' %}on{% endif %}">Filters</a>
+    <a href="/feds" class="{% if page=='feds' %}on{% endif %}">Feds</a>
+    <a href="/reports" class="{% if page=='reports' %}on{% endif %}">Reports</a>
+    <a href="/modstats" class="{% if page=='modstats' %}on{% endif %}">Mod stats</a>
+    <a href="/xp" class="{% if page=='xp' %}on{% endif %}">XP</a>
+    <a href="/settings" class="{% if page=='settings' %}on{% endif %}">Config</a>
+    <a href="/backup">Скачать DB</a>
+    <div class="more-links">
+      <a href="/badwords">Badwords</a>
+      <a href="/events">Events</a>
+      <a href="/rep">Rep</a>
+      <a href="/inventory">Inv</a>
+      <a href="/schedule">Schedule</a>
+      <a href="/marriages">Marry</a>
+      <a href="/disabled">Disabled</a>
+      <a href="/approved">Approved</a>
+      <a href="/quarantine">Quarantine</a>
+    </div>
+    <a href="/logout" class="logout">Выйти</a>
+  </aside>
+  <div class="main">{% block content %}{% endblock %}</div>
+</div>
+{% else %}
+{% block content_login %}{% endblock %}
+{% endif %}
+</body>
+</html>

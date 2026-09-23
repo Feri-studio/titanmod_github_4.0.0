@@ -16,14 +16,17 @@ from middlewares.throttling import AntiFloodMiddleware
 from middlewares.disable import DisableCommandMiddleware
 from middlewares.aliases import AliasMiddleware
 from middlewares.snipe_track import SnipeTrackMiddleware
+from middlewares.activation import GroupActivationMiddleware
+from middlewares.anticheat_mw import AntiCheatMiddleware
 from services.scheduler import scheduler_loop
 from services.locks import OUR_COMMANDS
 from core.commands import ALL_COMMAND_NAMES
+from handlers import security_ac, stats_ui
 from handlers import (
     start, punish, warns, locks, welcome, notes, filters_cmd, federation,
     security, admin_tools, settings, info, extras, fun, owner, more, moderation,
     levels, giveaway, topics, quarantine, aliases, mass, backup, watch, catalog,
-    ranks, cabinet, economy, synonyms, tickets, v42_tools, full_cmds, v45,
+    ranks, cabinet, economy, synonyms, tickets, v42_tools, full_cmds, v45, activate,
 )
 from handlers.pack import utils_pack as pack_utils
 from handlers.pack import fun_pack as pack_fun
@@ -85,6 +88,8 @@ async def main() -> None:
     dp.message.outer_middleware(AliasMiddleware())
     dp.message.middleware(ContextMiddleware())
     dp.callback_query.middleware(ContextMiddleware())
+    dp.message.middleware(GroupActivationMiddleware())
+    dp.message.middleware(AntiCheatMiddleware())
     dp.message.middleware(DisableCommandMiddleware())
     dp.message.middleware(AntiFloodMiddleware())
     dp.message.middleware(SnipeTrackMiddleware())
@@ -98,7 +103,7 @@ async def main() -> None:
         topics.router, quarantine.router, aliases.router, mass.router,
         backup.router, watch.router, synonyms.router, tickets.router,
         pack_utils.router, pack_fun.router, pack_reports.router, pack_economy.router,
-        v42_tools.router, full_cmds.router, v45.router,
+        activate.router, security_ac.router, stats_ui.router, v42_tools.router, full_cmds.router, v45.router,
     )
     for r in routers:
         dp.include_router(r)

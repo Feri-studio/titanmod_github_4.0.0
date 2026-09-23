@@ -56,6 +56,10 @@ async def _tick(bot: Bot):
         await _scheduled_posts(bot)
     except Exception:
         pass
+    try:
+        await _daily_backup(bot)
+    except Exception:
+        pass
 
 
 async def _scheduled_posts(bot: Bot):
@@ -73,3 +77,32 @@ async def _scheduled_posts(bot: Bot):
 
 
 # patch _tick via wrap - append call by replacing end of _tick
+
+
+_last_backup_day = ""
+
+
+async def _daily_backup(bot: Bot):
+    """Once per calendar day send DB to BOT_ADMINS."""
+    global _last_backup_day
+    from datetime import date
+    from config import config
+    import os
+    day = date.today().isoformat()
+    if day == _last_backup_day:
+        return
+    # run after 03:00 local to avoid spam at midnight restarts
+    import datetime as dt
+    if dt.datetime.now().hour < 3:
+        return
+    from database.db import DB_PATH
+    if not os.path.exists(DB_PATH):
+        return
+    from aiogram.types import FSInputFile
+    doc = FSInputFile(DB_PATH, filename=f"titanmod-{day}.db")
+    for aid in getattr(config, "ADMINS", []) or []:
+        try:
+            await bot.send_document(aid, doc, caption=f"Автобэкап TitanMod {config.VERSION} · {day}")
+        except Exception:
+            pass
+    _last_backup_day = day

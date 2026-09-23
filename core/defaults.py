@@ -81,6 +81,8 @@ LOG_EVENTS = [
     "service",
     "antiflood",
     "blacklist",
+    "activate",
+    "ro",
 ]
 
 WARN_MODES = ("ban", "mute", "kick", "tban", "tmute")
@@ -129,6 +131,7 @@ DEFAULT_SETTINGS = {
     "night_end": "07:00",
     "night_action": "lock",
     "force_sub": 0,
+    "group_activated": 0,
     "newbie_minutes": 0,
     "siege_until": 0,
     "warn_mode": "mute",

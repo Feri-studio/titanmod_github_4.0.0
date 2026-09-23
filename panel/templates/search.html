@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Поиск{% endblock %}
+{% block content %}
+<h1>Поиск пользователя</h1>
+<form method="get" action="/search" class="row">
+  <input name="q" value="{{ q }}" placeholder="user_id или @username" style="min-width:240px">
+  <button type="submit">Найти</button>
+</form>
+{% if q %}
+<h2>Users</h2>
+<table>
+  <tr><th>id</th><th>username</th><th>name</th><th>gban</th><th>last_seen</th></tr>
+  {% for u in users %}
+  <tr>
+    <td><code>{{ u.user_id }}</code></td>
+    <td>{{ u.username or '' }}</td>
+    <td>{{ u.first_name or '' }} {{ u.last_name or '' }}</td>
+    <td>{{ u.gbanned or 0 }}</td>
+    <td>{{ u.last_seen or '' }}</td>
+  </tr>
+  {% else %}<tr><td colspan="5">Не найдено</td></tr>{% endfor %}
+</table>
+<h2>Варны (если искали по id)</h2>
+<table>
+  <tr><th>id</th><th>chat</th><th>reason</th><th>when</th></tr>
+  {% for w in warns %}
+  <tr><td>{{ w.id }}</td><td>{{ w.chat_id }}</td><td>{{ w.reason }}</td><td>{{ w.created_at }}</td></tr>
+  {% else %}<tr><td colspan="4">—</td></tr>{% endfor %}
+</table>
+{% endif %}
+{% endblock %}

@@ -3,11 +3,20 @@ from database.db import get_settings, add_event
 
 
 async def send_log(bot: Bot, chat_id: int, event: str, text: str, user_id=None, admin_id=None):
-    settings = await get_settings(chat_id)
-    events = (settings.get("log_events") or "").split(",")
-    events = [e.strip() for e in events if e.strip()]
-    await add_event(chat_id, event, user_id, admin_id, text)
-    if event not in events and events:
+    """Write event_log and optionally forward to log_chat_id."""
+    event = (event or "event").lower().strip()
+    try:
+        await add_event(chat_id, event, user_id, admin_id, text)
+    except Exception:
+        pass
+    try:
+        settings = await get_settings(chat_id)
+    except Exception:
+        return
+    raw = settings.get("log_events") or ""
+    events = [e.strip().lower() for e in raw.split(",") if e.strip()]
+    # if list configured and event not in it — skip telegram send (still in DB)
+    if events and event not in events:
         return
     dest = settings.get("log_chat_id")
     if not dest:

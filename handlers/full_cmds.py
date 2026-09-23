@@ -713,14 +713,6 @@ async def cmd_trigger(message: Message):
     await message.reply("Триггеры = фильтры: <code>/filter слово ответ</code>")
 
 
-@router.message(Command("inventory"))
-async def cmd_inventory(message: Message):
-    if message.chat.type == "private":
-        return
-    bal = await get_balance(message.chat.id, message.from_user.id)
-    await message.reply(card("Инвентарь", f"💰 Монеты: <b>{bal}</b>\n🛡 Щит: см. /shop", emoji="🎒"))
-
-
 @router.message(Command("removecoins"), RankOrAdminFilter("settings"))
 async def cmd_removecoins(message: Message, bot: Bot, command: CommandObject):
     user, rest = await resolve_user(message, bot, command.args or "")

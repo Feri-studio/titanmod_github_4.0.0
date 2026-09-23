@@ -1,6 +1,6 @@
 """Auto-moderation engine: locks, blacklist, links, channels, force-sub, filters, files."""
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from aiogram import Router, Bot, F
 from aiogram.types import Message, ContentType
 from aiogram.enums import ChatType
@@ -37,6 +37,13 @@ async def auto_mod(message: Message, bot: Bot, settings: dict | None = None):
     if message.chat.type not in ("group", "supergroup"):
         return
     s = settings or await get_settings(message.chat.id)
+
+    # daily message counter for /chatstats
+    try:
+        if message.from_user and not message.from_user.is_bot:
+            await bump_stat(message.chat.id, "messages")
+    except Exception:
+        pass
 
     # custom commands
     if message.text and message.text.startswith("/"):
@@ -107,23 +114,53 @@ async def auto_mod(message: Message, bot: Bot, settings: dict | None = None):
             pass
         return
 
-    # force subscribe
-    if s.get("force_sub") and s.get("force_sub_chat"):
-        target = s["force_sub_chat"]
+    # force subscribe (every message, skip admins/approved)
+    if (
+        s.get("force_sub")
+        and s.get("force_sub_chat")
+        and message.from_user
+        and not message.from_user.is_bot
+        and not await _privileged(bot, message)
+    ):
+        target = str(s["force_sub_chat"]).strip()
         try:
-            ch = target if str(target).startswith("@") else int(target)
+            ch = target if target.startswith("@") or target.startswith("-") else (
+                int(target) if target.lstrip("-").isdigit() else ("@" + target.lstrip("@"))
+            )
             mem = await bot.get_chat_member(ch, message.from_user.id)
             if mem.status in ("left", "kicked"):
-                await message.delete()
-                await message.answer(
-                    f"{mention(message.from_user)}, подпишись на {html_esc(str(target))} чтобы писать.",
-                )
+                try:
+                    await message.delete()
+                except Exception:
+                    pass
+                try:
+                    await bot.restrict_chat_member(
+                        message.chat.id, message.from_user.id, permissions=MUTE_PERMS
+                    )
+                except Exception:
+                    pass
+                try:
+                    await message.answer(
+                        f"🔒 {mention(message.from_user)}, подпишись на "
+                        f"<code>{html_esc(str(target))}</code>, чтобы писать в чат."
+                    )
+                except Exception:
+                    pass
+                try:
+                    from services.logger import send_log
+                    await send_log(
+                        bot, message.chat.id, "force_sub",
+                        f"Force-sub: {mention(message.from_user)} не подписан на {html_esc(str(target))}",
+                        message.from_user.id, None,
+                    )
+                except Exception:
+                    pass
                 return
         except Exception:
             pass
 
     # night mode
-    if s.get("nightmode") and is_night(datetime.utcnow(), s.get("night_start") or "23:00", s.get("night_end") or "07:00"):
+    if s.get("nightmode") and is_night(datetime.now(timezone.utc), s.get("night_start") or "23:00", s.get("night_end") or "07:00"):
         try:
             await message.delete()
             await bump_stat(message.chat.id, "deleted")
@@ -132,7 +169,7 @@ async def auto_mod(message: Message, bot: Bot, settings: dict | None = None):
         return
 
     # username / name with url
-    if s.get("block_names_urls") and looks_like_url_name(message.from_user.full_name or ""):
+    if s.get("block_names_urls") and message.from_user and looks_like_url_name(message.from_user.full_name or ""):
         try:
             await message.delete()
         except Exception:
@@ -267,7 +304,7 @@ async def _punish_delete(message: Message, bot: Bot, s: dict, mode: str, reason:
             from database.db import add_warn
             await add_warn(message.chat.id, uid, bot.id, reason)
         elif mode == "mute":
-            until = datetime.utcnow() + timedelta(seconds=int(s.get("flood_time") or 300))
+            until = datetime.now(timezone.utc) + timedelta(seconds=int(s.get("flood_time") or 300))
             await bot.restrict_chat_member(message.chat.id, uid, permissions=MUTE_PERMS, until_date=until)
         elif mode == "kick":
             await bot.ban_chat_member(message.chat.id, uid)

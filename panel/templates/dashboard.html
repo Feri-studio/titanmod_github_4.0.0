@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · TitanMod{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<p class="muted">Обзор базы TitanMod</p>
+<div class="grid">
+  {% for k,v in stats.items() %}
+  <div class="card"><div class="k">{{ k }}</div><div class="v">{{ v }}</div></div>
+  {% endfor %}
+</div>
+<h2>Последние чаты</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>ID</th><th>Название</th><th>Тип</th><th></th></tr>
+  {% for c in chats %}
+  <tr>
+    <td><code>{{ c.chat_id }}</code></td>
+    <td>{{ c.title or '—' }}</td>
+    <td>{{ c.chat_type }}</td>
+    <td><a href="/chats/{{ c.chat_id }}">Открыть →</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="4">Нет чатов — добавь бота в группу</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

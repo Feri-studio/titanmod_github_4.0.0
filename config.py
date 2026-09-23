@@ -30,6 +30,7 @@ def _parse_ids(raw: str) -> list[int]:
 
 @dataclass
 class Config:
+    ACTIVATE_CODE: str = os.getenv("ACTIVATE_CODE", "7975091645")
     BOT_TOKEN: str = os.getenv("BOT_TOKEN", "")
     ADMINS: list[int] = field(default_factory=lambda: _parse_ids(os.getenv("BOT_ADMINS", "")))
     DB_PATH: str = os.getenv("DB_PATH", "data/moderation_bot.db")

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · TitanMod{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p class="muted">{{ rows|length }} записей</p>
+<div class="table-wrap">
+<table>
+  <tr>
+    {% for col in columns %}<th>{{ col }}</th>{% endfor %}
+    {% if actions_warn_delete %}<th></th>{% endif %}
+  </tr>
+  {% for r in rows %}
+  <tr>
+    {% for col in columns %}<td>{{ r.get(col, '') }}</td>{% endfor %}
+    {% if actions_warn_delete %}
+    <td>
+      <form method="post" action="/warns/{{ r.id }}/delete" class="inline">
+        <button type="submit" class="danger">×</button>
+      </form>
+    </td>
+    {% endif %}
+  </tr>
+  {% else %}
+  <tr><td colspan="{{ columns|length + (1 if actions_warn_delete else 0) }}">Нет данных</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

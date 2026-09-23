@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Чат {{ chat.chat_id }}{% endblock %}
+{% block content %}
+<h1>{{ chat.title or chat.chat_id }}</h1>
+<p class="muted"><code>{{ chat.chat_id }}</code> · {{ chat.chat_type }} · @{{ chat.username or '—' }}</p>
+{% if saved %}<p class="ok-msg">Settings сохранены</p>{% endif %}
+
+<div class="row">
+  <form method="post" action="/chats/{{ chat.chat_id }}/activate" class="inline">
+    <input type="hidden" name="activated" value="1">
+    <button type="submit">Activate</button>
+  </form>
+  <form method="post" action="/chats/{{ chat.chat_id }}/activate" class="inline">
+    <input type="hidden" name="activated" value="0">
+    <button type="submit" class="danger">Deactivate</button>
+  </form>
+  <span class="muted">activated={{ settings.get('group_activated', 0) }}</span>
+</div>
+
+<h2>Быстрые флаги</h2>
+<div class="row flags">
+{% set flags = [
+  ('welcome_enabled','Welcome'),
+  ('welcome_captcha','Captcha'),
+  ('antiflood','Antiflood'),
+  ('antispam','Antispam'),
+  ('raid_mode','Raid'),
+  ('nightmode','Night'),
+  ('force_sub','Force-sub'),
+  ('reports','Reports'),
+] %}
+{% for key, label in flags %}
+  <form method="post" action="/chats/{{ chat.chat_id }}/toggle" class="inline">
+    <input type="hidden" name="key" value="{{ key }}">
+    <input type="hidden" name="value" value="{{ 0 if settings.get(key) else 1 }}">
+    <button type="submit" class="{% if settings.get(key) %}okbtn{% else %}offbtn{% endif %}">
+      {{ label }}: {{ 'ON' if settings.get(key) else 'OFF' }}
+    </button>
+  </form>
+{% endfor %}
+</div>
+
+<h2>Settings JSON</h2>
+<form method="post" action="/chats/{{ chat.chat_id }}/settings">
+  <textarea name="settings_json" rows="16" class="code">{{ settings_json }}</textarea>
+  <p><button type="submit">Сохранить JSON</button></p>
+</form>
+
+<h2>Варны</h2>
+<div class="table-wrap"><table>
+  <tr><th>id</th><th>user</th><th>admin</th><th>reason</th><th>when</th></tr>
+  {% for w in warns %}
+  <tr><td>{{ w.id }}</td><td>{{ w.user_id }}</td><td>{{ w.admin_id }}</td><td>{{ w.reason }}</td><td>{{ w.created_at }}</td></tr>
+  {% else %}<tr><td colspan="5">—</td></tr>{% endfor %}
+</table>
+
+<h2>Ранги</h2>
+<div class="table-wrap"><table>
+  <tr><th>user</th><th>level</th><th>title</th></tr>
+  {% for r in ranks %}
+  <tr><td>{{ r.user_id }}</td><td>{{ r.level }}</td><td>{{ r.title or '' }}</td></tr>
+  {% else %}<tr><td colspan="3">—</td></tr>{% endfor %}
+</table>
+
+<h2>Notes / Filters</h2>
+<p class="muted">notes: {{ notes|length }} · filters: {{ filters|length }}</p>
+{% endblock %}

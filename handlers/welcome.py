@@ -190,7 +190,57 @@ async def on_join(event: ChatMemberUpdated, bot: Bot):
                 pass
             return
 
+
+    # --- force_sub: must be member of channel ---
+    if s.get("force_sub") and s.get("force_sub_chat"):
+        ch = str(s.get("force_sub_chat") or "").strip()
+        ok_sub = False
+        try:
+            target = ch if ch.startswith("@") or ch.startswith("-") else ("@" + ch.lstrip("@"))
+            m = await bot.get_chat_member(target, user.id)
+            ok_sub = m.status in ("member", "administrator", "creator", "restricted")
+        except Exception:
+            ok_sub = False
+        if not ok_sub:
+            try:
+                await bot.restrict_chat_member(event.chat.id, user.id, permissions=MUTE_PERMS)
+            except Exception:
+                pass
+            try:
+                await bot.send_message(
+                    event.chat.id,
+                    f"🔒 {mention(user)}, подпишись на <code>{html_esc(ch)}</code> и напиши /start в группе, чтобы писать.",
+                )
+            except Exception:
+                pass
+            return
+
+    # --- newbie quarantine: limited chat for N minutes ---
+    mins = int(s.get("newbie_minutes") or 0)
+    if mins > 0 and not await is_approved(event.chat.id, user.id):
+        limited = ChatPermissions(
+            can_send_messages=True,
+            can_send_audios=False,
+            can_send_documents=False,
+            can_send_photos=False,
+            can_send_videos=False,
+            can_send_video_notes=False,
+            can_send_voice_notes=False,
+            can_send_polls=False,
+            can_send_other_messages=False,
+            can_add_web_page_previews=False,
+            can_invite_users=False,
+            can_pin_messages=False,
+            can_manage_topics=False,
+        )
+        try:
+            until = int(time.time()) + mins * 60
+            await bot.restrict_chat_member(event.chat.id, user.id, permissions=limited, until_date=until)
+        except Exception:
+            pass
+
     await bump_stat(event.chat.id, "joins")
+
     joins = await track_join(event.chat.id, int(s.get("raid_window", 12) or 12))
     if s.get("raid_mode") or joins >= int(s.get("raid_joins", 10) or 10):
         action = s.get("raid_action", "mute")

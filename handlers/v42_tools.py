@@ -12,6 +12,7 @@ from core.style import card, ok, fail, HR
 from core.text import html_esc, mention
 from core.ranks import effective_rank, rank_badge
 from filters.rank import RankOrAdminFilter
+from core.anticheat import anticheat, MAX_COINFLIP
 from database.extra import (
     get_balance,
     add_coins,
@@ -95,6 +96,9 @@ async def cmd_rob(message: Message, bot: Bot):
     if target.id == message.from_user.id:
         await message.reply(fail("Себя нельзя"))
         return
+    if target.is_bot:
+        await message.reply(fail("Ботов грабить нельзя"))
+        return
     if _shields.get((message.chat.id, target.id), 0) > time.time() or await inv_has(message.chat.id, target.id, "shield"):
         await message.reply(fail("У цели активен щит"))
         return
@@ -123,13 +127,16 @@ async def cmd_coinflip(message: Message, command: CommandObject):
         await message.reply("<code>/coinflip 20</code> — ставка")
         return
     bet = int(parts[0])
-    if bet <= 0:
+    ac = anticheat.check_coinflip(message.chat.id, message.from_user.id, bet)
+    if not ac.ok:
+        await message.reply(fail(ac.reason))
         return
     bal = await get_balance(message.chat.id, message.from_user.id)
     if bal < bet:
         await message.reply(fail(f"Нужно {bet}, есть {bal}"))
         return
     await add_coins(message.chat.id, message.from_user.id, -bet)
+    anticheat.register_bet(message.chat.id, message.from_user.id, bet)
     if random.random() < 0.5:
         bal = await add_coins(message.chat.id, message.from_user.id, bet * 2)
         await message.reply(ok(f"Орёл! +{bet} · баланс <b>{bal}</b>"))
