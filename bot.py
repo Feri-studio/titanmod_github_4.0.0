@@ -82,7 +82,7 @@ async def main() -> None:
     await init_db()
     logger.info("DB ready · TitanMod %s · commands in catalog: %s", config.VERSION, len(ALL_COMMAND_NAMES))
 
-    bot = Bot(token=config.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot = Bot(token=config.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML), timeout=60)
     dp = Dispatcher(storage=MemoryStorage())
 
     dp.message.outer_middleware(AliasMiddleware())
