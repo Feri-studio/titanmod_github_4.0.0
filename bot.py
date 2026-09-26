@@ -85,14 +85,14 @@ async def main() -> None:
     bot = Bot(token=config.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML), timeout=60)
     dp = Dispatcher(storage=MemoryStorage())
 
-    dp.message.outer_middleware(AliasMiddleware())
+    # dp.message.outer_middleware(AliasMiddleware())
     dp.message.middleware(ContextMiddleware())
     dp.callback_query.middleware(ContextMiddleware())
     # dp.message.middleware(GroupActivationMiddleware())
     # dp.message.middleware(AntiCheatMiddleware())
     # dp.message.middleware(DisableCommandMiddleware())
     # dp.message.middleware(AntiFloodMiddleware())
-    dp.message.middleware(SnipeTrackMiddleware())
+    # dp.message.middleware(SnipeTrackMiddleware())
 
     routers = (
         catalog.router, cabinet.router, ranks.router, economy.router,
