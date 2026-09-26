@@ -89,9 +89,9 @@ async def main() -> None:
     dp.message.middleware(ContextMiddleware())
     dp.callback_query.middleware(ContextMiddleware())
     dp.message.middleware(GroupActivationMiddleware())
-    dp.message.middleware(AntiCheatMiddleware())
-    dp.message.middleware(DisableCommandMiddleware())
-    dp.message.middleware(AntiFloodMiddleware())
+    # dp.message.middleware(AntiCheatMiddleware())
+    # dp.message.middleware(DisableCommandMiddleware())
+    # dp.message.middleware(AntiFloodMiddleware())
     dp.message.middleware(SnipeTrackMiddleware())
 
     routers = (
