@@ -88,7 +88,7 @@ async def main() -> None:
     dp.message.outer_middleware(AliasMiddleware())
     dp.message.middleware(ContextMiddleware())
     dp.callback_query.middleware(ContextMiddleware())
-    dp.message.middleware(GroupActivationMiddleware())
+    # dp.message.middleware(GroupActivationMiddleware())
     # dp.message.middleware(AntiCheatMiddleware())
     # dp.message.middleware(DisableCommandMiddleware())
     # dp.message.middleware(AntiFloodMiddleware())
