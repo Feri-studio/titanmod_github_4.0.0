@@ -149,7 +149,7 @@ async def cmd_privacy(message: Message):
     )
 
 
-@router.message(F.text.regexp(r"^/[A-Za-zа-яА-ЯёЁ0-9_]+"))
+# @router.message(F.text.regexp(r"^/[A-Za-zа-яА-ЯёЁ0-9_]+"))
 async def cmd_unknown(message: Message):
     """Fallback for unknown slash-commands."""
     text = (message.text or "").strip()
@@ -161,3 +161,8 @@ async def cmd_unknown(message: Message):
     if len(raw) > 40:
         return
     await message.reply(unknown_command(raw), disable_web_page_preview=True)
+
+
+@router.message(Command("тест777"))
+async def _test777(message: Message):
+    await message.reply("РАБОТАЕТ! хендлер вызван")
