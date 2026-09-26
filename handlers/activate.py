@@ -58,7 +58,7 @@ async def cmd_activate(message: Message, command: CommandObject, bot: Bot):
         return
 
     if code != str(config.ACTIVATE_CODE):
-        await message.reply(fail("Неверный код. Группа по-прежнему заблокирована."))
+        await message.reply(fail("Код не совпал. Чат по-прежнему закрыт для команд."))
         return
 
     await ensure_chat(message.chat.id, message.chat.title, message.chat.type, message.chat.username)
@@ -74,14 +74,14 @@ async def cmd_activate(message: Message, command: CommandObject, bot: Bot):
     await message.reply(
         "\n".join(
             [
-                "✅ <b>Группа активирована</b>",
+                "✅ <b>Чат открыт</b>",
                 HR,
                 f"Чат: <b>{html_esc(message.chat.title or str(message.chat.id))}</b>",
                 "",
-                "Теперь доступны модерация, ранги, экономика, настройки.",
+                "Доступны модерация, ранги, экономика и настройки.",
                 "› <code>/settings</code> · <code>/commands</code> · <code>/preset normal</code>",
                 HR_LIGHT,
-                "<i>TitanMod · спасибо, что подтвердили доступ</i>",
+                "<i>TitanMod · можно настраивать чат</i>",
             ]
         )
     )
@@ -103,7 +103,7 @@ async def cmd_deactivate(message: Message):
         await message.reply(fail("Только владелец бота."))
         return
     await update_settings(message.chat.id, group_activated=0)
-    await message.reply(ok("Группа снова <b>заблокирована</b>. Нужен /activate КОД."))
+    await message.reply(ok("Чат снова закрыт. Чтобы открыть — <code>/activate КОД</code>."))
 
 
 @router.my_chat_member()

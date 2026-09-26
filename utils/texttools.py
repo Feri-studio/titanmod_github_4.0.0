@@ -64,7 +64,25 @@ def safe_calc(expr: str) -> str:
     if not e or not SAFE_CALC.match(e) or "**" in e:
         return "Можно только цифры и + - * / ( )"
     try:
-        val = eval(e, {"__builtins__": {}}, {})  # noqa: S307 — filtered charset
+        import ast
+        import operator as op
+        ops = {
+            ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul,
+            ast.Div: op.truediv, ast.Mod: op.mod, ast.USub: op.neg, ast.UAdd: op.pos,
+        }
+        def _ev(node):
+            if isinstance(node, ast.Expression):
+                return _ev(node.body)
+            if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+                return node.value
+            if isinstance(node, ast.Num):  # py<3.8
+                return node.n
+            if isinstance(node, ast.BinOp) and type(node.op) in ops:
+                return ops[type(node.op)](_ev(node.left), _ev(node.right))
+            if isinstance(node, ast.UnaryOp) and type(node.op) in ops:
+                return ops[type(node.op)](_ev(node.operand))
+            raise ValueError("bad")
+        val = _ev(ast.parse(e, mode="eval"))
         return str(val)
     except Exception:
         return "Не посчиталось"

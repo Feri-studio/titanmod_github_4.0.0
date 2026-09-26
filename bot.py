@@ -21,7 +21,7 @@ from middlewares.anticheat_mw import AntiCheatMiddleware
 from services.scheduler import scheduler_loop
 from services.locks import OUR_COMMANDS
 from core.commands import ALL_COMMAND_NAMES
-from handlers import security_ac, stats_ui
+from handlers import security_ac, stats_ui, minigames, extra_pack, new_cmds
 from handlers import (
     start, punish, warns, locks, welcome, notes, filters_cmd, federation,
     security, admin_tools, settings, info, extras, fun, owner, more, moderation,
@@ -101,9 +101,9 @@ async def main() -> None:
         security.router, admin_tools.router, settings.router, info.router,
         extras.router, fun.router, more.router, levels.router, giveaway.router,
         topics.router, quarantine.router, aliases.router, mass.router,
-        backup.router, watch.router, synonyms.router, tickets.router,
+        backup.router, watch.router, tickets.router,
         pack_utils.router, pack_fun.router, pack_reports.router, pack_economy.router,
-        activate.router, security_ac.router, stats_ui.router, v42_tools.router, full_cmds.router, v45.router,
+        activate.router, security_ac.router, stats_ui.router, minigames.router, extra_pack.router, new_cmds.router, v42_tools.router, full_cmds.router, v45.router, synonyms.router,
     )
     for r in routers:
         dp.include_router(r)

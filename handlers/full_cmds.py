@@ -199,20 +199,6 @@ async def cmd_settitle(message: Message, bot: Bot, command: CommandObject):
 
 
 # ---------- MASS / SAFETY ----------
-@router.message(Command("unbanall"), RankOrAdminFilter("ban"))
-async def cmd_unbanall(message: Message, bot: Bot):
-    await message.reply(
-        "Telegram API не отдаёт полный список банов. "
-        "Разбань по id: <code>/unban ID</code>"
-    )
-
-
-@router.message(Command("unmuteall"), RankOrAdminFilter("mute"))
-async def cmd_unmuteall(message: Message, bot: Bot):
-    await message.reply(
-        "Массовый unmute без списка restricted невозможен через Bot API. "
-        "Сними мут: <code>/unmute</code> ответом."
-    )
 
 
 @router.message(Command("nuke"), RankOrAdminFilter("purge"))
@@ -242,13 +228,6 @@ async def cmd_unfreeze(message: Message, bot: Bot):
     except Exception as e:
         await message.reply(fail(str(e)))
 
-
-@router.message(Command("tagall", "pingall"), RankOrAdminFilter("purge"))
-async def cmd_tagall(message: Message, bot: Bot):
-    await message.reply(
-        "Массовый tagall ограничен Bot API (нет полного списка участников без admin rights + долгий скан). "
-        "Используй список админов: /adminlist"
-    )
 
 
 @router.message(Command("voiceban", "imgban"), RankOrAdminFilter("mute"))
@@ -305,13 +284,6 @@ async def cmd_toggle_security(message: Message, command: CommandObject):
     await update_settings(message.chat.id, **{key: 1 if on else 0})
     await message.reply(ok(f"{raw} → <b>{'on' if on else 'off'}</b>"))
 
-
-@router.message(Command("autorole"), IsAdminFilter())
-async def cmd_autorole(message: Message, command: CommandObject):
-    await message.reply(
-        "Автороли через бота ограничены: бот не может выдавать роли как Discord. "
-        "Используй captcha/approve: /captcha on · /approve"
-    )
 
 
 @router.message(Command("logchannel"), IsAdminFilter())
@@ -394,21 +366,7 @@ async def cmd_description(message: Message, bot: Bot, command: CommandObject):
         await message.reply(fail(str(e)))
 
 
-@router.message(Command("pinlist"))
-async def cmd_pinlist(message: Message, bot: Bot):
-    try:
-        chat = await bot.get_chat(message.chat.id)
-        pin = getattr(chat, "pinned_message", None)
-        if not pin:
-            await message.reply("Закрепов нет (Bot API отдаёт только текущий pin).")
-            return
-        preview = (pin.text or pin.caption or f"#{pin.message_id}")[:200]
-        await message.reply(f"📌 <code>{pin.message_id}</code>\n{html_esc(preview)}")
-    except Exception as e:
-        await message.reply(fail(str(e)))
 
-
-# ---------- INFO extras ----------
 @router.message(Command("avatar"))
 async def cmd_avatar(message: Message, bot: Bot, command: CommandObject):
     user, _ = await resolve_user(message, bot, command.args or "")
@@ -439,35 +397,6 @@ async def cmd_idcard(message: Message, bot: Bot, command: CommandObject):
         )
     )
 
-
-@router.message(Command("joindate", "firstseen", "lastseen"))
-async def cmd_seen(message: Message, bot: Bot, command: CommandObject):
-    user, _ = await resolve_user(message, bot, command.args or "")
-    user = user or message.from_user
-    # from DB users table if available
-    try:
-        from database.db import get_connection
-        import aiosqlite
-        from database.db import DB_PATH
-        async with aiosqlite.connect(DB_PATH) as db:
-            db.row_factory = aiosqlite.Row
-            cur = await db.execute("SELECT * FROM users WHERE user_id=?", (user.id,))
-            row = await cur.fetchone()
-        if not row:
-            await message.reply(f"{mention(user)} — нет записей в БД бота (ещё не писал).")
-            return
-        data = dict(row)
-        await message.reply(
-            card(
-                "Seen",
-                f"{mention(user)}\n"
-                f"first/seen fields: <code>{html_esc(str(data.get('created_at') or data.get('first_seen') or '—'))}</code>\n"
-                f"last: <code>{html_esc(str(data.get('last_seen') or '—'))}</code>",
-                emoji="👁",
-            )
-        )
-    except Exception as e:
-        await message.reply(fail(str(e)))
 
 
 @router.message(Command("active", "inactive"))
@@ -554,18 +483,56 @@ async def cmd_translate(message: Message, command: CommandObject):
     if not text and message.reply_to_message:
         text = message.reply_to_message.text or ""
     if not text:
-        await message.reply("<code>/translate текст</code> (простой EN⇄RU словарь-заглушка)")
-        return
-    # lightweight demo without API key
-    await message.reply(
-        card(
-            "Translate",
-            f"Исходный текст ({len(text)} симв.):\n{html_esc(text[:800])}\n\n"
-            f"<i>Полный машинный перевод требует API-ключа. "
-            f"Текст принят; для продакшена подключи LibreTranslate/Google.</i>",
-            emoji="🌐",
+        await message.reply(
+            "<code>/translate текст</code>\n"
+            "Пара языков: <code>/translate en:ru hello</code>"
         )
-    )
+        return
+    source, target = "auto", "ru"
+    first = text.split()[0] if text.split() else ""
+    if ":" in first and len(first) <= 7:
+        rest = text[len(first):].strip()
+        if rest and len(first.split(":")) == 2:
+            source, target = first.split(":")
+            text = rest
+    if source == "auto":
+        cyr = sum(1 for c in text if ("а" <= c.lower() <= "я") or c.lower() == "ё")
+        source, target = ("ru", "en") if cyr > max(1, len(text) / 4) else ("en", "ru")
+    try:
+        import json
+        import urllib.request
+        payload = json.dumps(
+            {"q": text[:1500], "source": source, "target": target, "format": "text"}
+        ).encode()
+        req = urllib.request.Request(
+            "https://libretranslate.com/translate",
+            data=payload,
+            headers={"Content-Type": "application/json", "User-Agent": "TitanMod/4.6"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+        out = data.get("translatedText") or ""
+        if not out:
+            raise RuntimeError("empty")
+        await message.reply(
+            card(
+                f"Перевод {source}→{target}",
+                html_esc(out[:3000]),
+                emoji="🌐",
+                footer="LibreTranslate · /translate en:ru text",
+            )
+        )
+    except Exception:
+        await message.reply(
+            card(
+                "Перевод",
+                html_esc(text[:500])
+                + "\n\n<i>Сервис перевода временно недоступен. "
+                + "Попробуй позже: <code>/translate en:ru text</code></i>",
+                emoji="🌐",
+            )
+        )
 
 
 @router.message(Command("qr"))

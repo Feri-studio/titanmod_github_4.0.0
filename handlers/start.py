@@ -5,7 +5,10 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from config import config
 from core.commands import COMMANDS, CATEGORIES, ALL_COMMAND_NAMES
-from core.style import HR, HR_LIGHT, CAT_EMOJI, card, safe_edit, unknown_command
+from core.style import (
+    HR, HR_LIGHT, CAT_EMOJI, card, safe_edit, unknown_command,
+    welcome_private, welcome_group,
+)
 from core.text import html_esc
 from keyboards.inline import help_kb
 
@@ -17,61 +20,67 @@ async def start_kb(bot: Bot) -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     if me.username:
         b.row(InlineKeyboardButton(
-            text="➕ Добавить в группу",
+            text="➕  Добавить в группу",
             url=f"https://t.me/{me.username}?startgroup=true",
         ))
     b.row(
-        InlineKeyboardButton(text="📚 Все команды", callback_data="cmds:all:0"),
-        InlineKeyboardButton(text="❓ Справка", callback_data="help:home"),
+        InlineKeyboardButton(text="📚  Все команды", callback_data="cmds:all:0"),
+        InlineKeyboardButton(text="❓  Справка", callback_data="help:home"),
     )
-    b.row(InlineKeyboardButton(text="ℹ О боте", callback_data="help:about"))
+    b.row(InlineKeyboardButton(text="ℹ️  О боте", callback_data="help:about"))
     return b.as_markup()
 
 
 def about_text() -> str:
-    return (
-        f"✨ <b>{config.BOT_NAME}</b>  <code>v{config.VERSION}</code>\n"
-        f"{HR}\n"
-        f"Telegram-бот модерации на aiogram 3.\n\n"
-        f"› Наказания, варны, замки, капча\n"
-        f"› Ранги, экономика, тикеты\n"
-        f"› Автомод, федерации, розыгрыши\n"
-        f"{HR_LIGHT}\n"
-        f"<i>Сделай бота админом группы для полного функционала</i>"
+    return "\n".join([
+        f"✨ <b>{config.BOT_NAME}</b>  <code>v{config.VERSION}</code>",
+        HR,
+        "Модерация групп в Telegram: чисто, быстро, по делу.",
+        "",
+        "<b>Умею</b>",
+        "› Баны, муты, варны и замки контента",
+        "› Капча, антирейд, фильтры и логи",
+        "› Ранги штата, экономика, тикеты",
+        "› Личный кабинет в ЛС",
+        HR_LIGHT,
+        "<i>Выдай боту права администратора — и можно настраивать чат</i>",
+    ])
+
+
+@router.message(Command("start"), F.chat.type == "private")
+async def cmd_start_private(message: Message, bot: Bot):
+    name = message.from_user.first_name if message.from_user else "друг"
+    await message.reply(
+        welcome_private(name, config.VERSION, config.BOT_NAME),
+        reply_markup=await start_kb(bot),
+        disable_web_page_preview=True,
     )
 
 
 @router.message(Command("start"), F.chat.type.in_({"group", "supergroup"}))
 async def cmd_start_group(message: Message, command: CommandObject, bot: Bot):
-    name = html_esc(message.from_user.first_name if message.from_user else "")
-    text = (
-        f"✨ <b>{config.BOT_NAME}</b>  <code>v{config.VERSION}</code>\n"
-        f"{HR}\n"
-        f"Привет, <b>{name}</b>! Я в этом чате.\n\n"
-        f"<b>Админам</b>\n"
-        f"› <code>/settings</code> — настройки\n"
-        f"› <code>/commands</code> — каталог\n"
-        f"› <code>/ranks</code> — штат\n"
-        f"› <code>/rules</code> — правила\n"
-        f"› <code>/preset normal</code> — автомод\n"
-        f"{HR_LIGHT}\n"
-        f"🏠 Кабинет в ЛС: <code>/menu</code>"
+    name = message.from_user.first_name if message.from_user else "друг"
+    await message.reply(
+        welcome_group(name, config.VERSION, config.BOT_NAME),
+        disable_web_page_preview=True,
     )
-    await message.reply(text, disable_web_page_preview=True)
 
 
 @router.message(Command("help", "modhelp", "справка"))
 async def cmd_help(message: Message):
-    text = (
-        f"❓ <b>Справка · {config.BOT_NAME}</b>\n"
-        f"{HR}\n"
-        f"В каталоге <b>{len(COMMANDS)}</b> команд.\n\n"
-        f"› Выбери раздел на клавиатуре\n"
-        f"› Полный список: <code>/commands</code>\n"
-        f"› Неизвестная команда — бот пришлёт подсказку\n"
-        f"{HR_LIGHT}\n"
-        f"<i>TitanMod help</i>"
-    )
+    text = "\n".join([
+        f"❓ <b>Справка · {config.BOT_NAME}</b>",
+        HR,
+        f"В каталоге <b>{len(COMMANDS)}</b> команд с описаниями.",
+        "",
+        "<b>Быстрые ссылки</b>",
+        "› Разделы — кнопки ниже",
+        "› Полный список: <code>/commands</code>",
+        "› Кто я в чате: <code>/whoami</code>",
+        "› Стата чата: <code>/chatstats</code>",
+        HR_LIGHT,
+        "<i>Не знаешь команду — напиши с ошибкой, подскажу</i>",
+    ])
     await message.reply(text, reply_markup=help_kb())
 
 
@@ -85,8 +94,12 @@ async def help_cb(callback: CallbackQuery, bot: Bot):
     if cat == "home":
         await safe_edit(
             callback.message,
-            f"❓ <b>Справка · {config.BOT_NAME}</b>\n{HR}\n"
-            f"Команд: <b>{len(COMMANDS)}</b>\nВыбери раздел:",
+            "\n".join([
+                f"❓ <b>Справка · {config.BOT_NAME}</b>",
+                HR,
+                f"Команд в каталоге: <b>{len(COMMANDS)}</b>",
+                "Выбери раздел на клавиатуре.",
+            ]),
             help_kb(),
         )
         await callback.answer()
@@ -101,14 +114,13 @@ async def help_cb(callback: CallbackQuery, bot: Bot):
         bits.append(f"› <code>/{cmd}</code> — {html_esc(desc)}")
         n += 1
         if n >= 25:
-            bits.append(f"<i>… и ещё в /commands</i>")
+            bits.append("<i>… полный список: /commands</i>")
             break
     if n == 0:
-        bits.append("<i>Пусто</i>")
-    bits.append(HR_LIGHT)
-    bits.append("<i>Назад — кнопка «Справка»</i>")
+        bits.append("<i>В этом разделе пока пусто</i>")
+    bits.extend([HR_LIGHT, "<i>Назад — кнопка «Справка»</i>"])
     b = InlineKeyboardBuilder()
-    b.row(InlineKeyboardButton(text="« К разделам", callback_data="help:home"))
+    b.row(InlineKeyboardButton(text="‹  К разделам", callback_data="help:home"))
     await safe_edit(callback.message, "\n".join(bits), b.as_markup())
     await callback.answer()
 
@@ -123,9 +135,15 @@ async def cmd_privacy(message: Message):
     await message.reply(
         card(
             "Приватность",
-            "Бот хранит настройки чатов, варны, ранги и экономику в локальной SQLite.\n"
-            "Сообщения пользователей не логируются целиком (кроме антиспам-кэша snipe в RAM).",
-            footer="TitanMod",
+            "\n".join([
+                "Храню только необходимое для модерации:",
+                "› настройки чата, варны, ранги, экономику",
+                "› служебные логи действий",
+                "",
+                "Полные переписки не сохраняются.",
+                "Snipe — только в памяти до перезапуска бота.",
+            ]),
+            footer="TitanMod · /privacy",
             emoji="🔐",
         )
     )

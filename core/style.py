@@ -1,4 +1,4 @@
-"""TitanMod visual system — rich Telegram HTML cards."""
+"""TitanMod visual system — единый стиль текстов (HTML)."""
 from __future__ import annotations
 
 from aiogram.exceptions import TelegramBadRequest
@@ -18,7 +18,13 @@ CAT_EMOJI = {
 }
 
 
-def card(title: str, body: str = "", footer: str | None = None, emoji: str = "", accent: str | None = None) -> str:
+def card(
+    title: str,
+    body: str = "",
+    footer: str | None = None,
+    emoji: str = "",
+    accent: str | None = None,
+) -> str:
     em = f"{emoji} " if emoji else ""
     parts = [f"{em}<b>{title}</b>", accent or HR]
     if body:
@@ -50,7 +56,7 @@ def ok(text: str) -> str:
 
 
 def fail(text: str) -> str:
-    return f"❌ <b>Ошибка</b>\n{HR_LIGHT}\n{text}"
+    return f"❌ <b>Не получилось</b>\n{HR_LIGHT}\n{text}"
 
 
 def warn(text: str) -> str:
@@ -58,12 +64,12 @@ def warn(text: str) -> str:
 
 
 def info(text: str) -> str:
-    return f"ℹ️ <b>Инфо</b>\n{HR_LIGHT}\n{text}"
+    return f"ℹ️ <b>Информация</b>\n{HR_LIGHT}\n{text}"
 
 
 def usage(command: str, examples: list[str], note: str | None = None) -> str:
     lines = [
-        "📝 <b>Как использовать</b>",
+        "📝 <b>Как пользоваться</b>",
         HR,
         f"Команда: <code>/{html_esc(command.lstrip('/'))}</code>",
         "",
@@ -79,17 +85,17 @@ def usage(command: str, examples: list[str], note: str | None = None) -> str:
 def unknown_command(cmd: str) -> str:
     c = html_esc((cmd or "").lstrip("/")[:40])
     return "\n".join([
-        "❓ <b>Команда не найдена</b>",
+        "❓ <b>Такой команды нет</b>",
         HR,
-        f"Неизвестно: <code>/{c}</code>",
+        f"Запрос: <code>/{c}</code>",
         "",
-        "<b>Что сделать</b>",
+        "<b>Что можно сделать</b>",
         f"  {BULLET} Проверь написание",
-        f"  {BULLET} <code>/commands</code> — каталог",
-        f"  {BULLET} <code>/help</code> — справка",
-        f"  {BULLET} <code>/menu</code> — кабинет в ЛС",
+        f"  {BULLET} Список: <code>/commands</code>",
+        f"  {BULLET} Справка: <code>/help</code>",
+        f"  {BULLET} Кабинет в ЛС: <code>/menu</code>",
         HR_LIGHT,
-        "<i>TitanMod</i>",
+        "<i>TitanMod подскажет, если команда написана с ошибкой</i>",
     ])
 
 
@@ -106,24 +112,24 @@ def bad_args(command: str, hint: str, examples: list[str] | None = None) -> str:
         lines.append("<b>Примеры</b>")
         for ex in examples:
             lines.append(f"  {BULLET} <code>{html_esc(ex)}</code>")
-    lines.extend([HR_LIGHT, "<i>Reply на сообщение или id / @username</i>"])
+    lines.extend([HR_LIGHT, "<i>Можно ответить на сообщение или указать id / @username</i>"])
     return "\n".join(lines)
 
 
 def need_reply(command: str) -> str:
     return bad_args(
         command,
-        "Нужен <b>ответ</b> на сообщение или <code>id</code> / <code>@user</code>.",
+        "Нужен <b>ответ на сообщение</b> пользователя либо <code>id</code> / <code>@username</code>.",
         [f"/{command.lstrip('/')} 1h спам", f"/{command.lstrip('/')} @user"],
     )
 
 
 def no_permission(what: str = "эту команду") -> str:
     return "\n".join([
-        "🚫 <b>Нет доступа</b>",
+        "🚫 <b>Недостаточно прав</b>",
         HR_LIGHT,
-        f"Недостаточно прав: <b>{html_esc(what)}</b>",
-        "Нужен админ Telegram или ранг штата бота.",
+        f"Действие недоступно: <b>{html_esc(what)}</b>",
+        "Нужны права админа Telegram или ранг штата бота.",
     ])
 
 
@@ -136,12 +142,13 @@ def progress_bar(value: int, maximum: int, length: int = 12) -> str:
 
 def rules_card(chat_title: str, rules_text: str) -> str:
     body = (rules_text or "").strip() or (
-        f"<i>Правила ещё не заданы.</i>\n{BULLET} <code>/setrules текст</code>"
+        f"<i>Правила ещё не заданы.</i>\n"
+        f"{BULLET} Админ: <code>/setrules текст правил</code>"
     )
     return card(
         f"Правила · {html_esc(chat_title or 'чат')}",
         body,
-        footer="TitanMod · /setrules · /privaterules",
+        footer="Изменить: /setrules · личные: /privaterules",
         emoji="📜",
     )
 
@@ -151,20 +158,20 @@ def action_card(action: str, target, admin, reason: str, extra: str = "") -> str
     lines = [
         f"<b>{action}</b>",
         HR,
-        f"👤 Цель — {mention(target)}",
-        f"🛡 Модер — {mention(admin)}",
-        f"📄 Причина — {html_esc(reason or '—')}",
+        f"👤 Участник — {mention(target)}",
+        f"🛡 Модератор — {mention(admin)}",
+        f"📄 Причина — {html_esc(reason or 'не указана')}",
     ]
     if extra:
         lines.append(f"⏱ {html_esc(extra)}")
-    lines.extend([HR_LIGHT, "<i>TitanMod moderation</i>"])
+    lines.extend([HR_LIGHT, "<i>TitanMod · модерация</i>"])
     return "\n".join(lines)
 
 
 def rank_card(who: str, rank_title: str, level: int, extra: str = "") -> str:
     bar = progress_bar(level, 7, 7)
     lines = [
-        "🏅 <b>Ранг</b>",
+        "🏅 <b>Ранг в штате</b>",
         HR,
         f"👤 {who}",
         f"{BULLET} {rank_title}",
@@ -172,7 +179,7 @@ def rank_card(who: str, rank_title: str, level: int, extra: str = "") -> str:
     ]
     if extra:
         lines.append(extra)
-    lines.extend([HR_LIGHT, "<i>/ranks · /stafflist</i>"])
+    lines.extend([HR_LIGHT, "<i>/ranks · /stafflist · /setrank</i>"])
     return "\n".join(lines)
 
 
@@ -181,12 +188,12 @@ def cabinet_header(name: str, rank_title: str, xp: int = 0, level: int = 1) -> s
     return "\n".join([
         "🏠 <b>Личный кабинет</b>",
         HR,
-        f"Привет, <b>{name}</b>!",
+        f"Привет, <b>{html_esc(name)}</b>!",
         f"{BULLET} Ранг: {rank_title}",
-        f"{BULLET} XP: <b>{xp}</b> · lvl <b>{level}</b>",
+        f"{BULLET} Опыт: <b>{xp}</b> · уровень <b>{level}</b>",
         f"{BULLET} {bar}",
         HR_LIGHT,
-        "<i>Выбери раздел ниже</i>",
+        "<i>Выбери раздел кнопкой ниже</i>",
     ])
 
 
@@ -196,14 +203,14 @@ def welcome_private(name: str, version: str, bot_name: str = "TitanMod") -> str:
         HR,
         f"Привет, <b>{html_esc(name)}</b>!",
         "",
-        "Модерация · ранги · экономика · тикеты",
+        "Я помогаю с модерацией групп: баны, варны, ранги, экономика и автомод.",
         "",
-        "<b>Старт</b>",
-        f"  {BULLET} <code>/menu</code> — кабинет",
-        f"  {BULLET} <code>/commands</code> — каталог",
-        f"  {BULLET} <code>/help</code> — справка",
+        "<b>С чего начать</b>",
+        f"  {BULLET} <code>/menu</code> — личный кабинет",
+        f"  {BULLET} <code>/commands</code> — все команды",
+        f"  {BULLET} <code>/help</code> — краткая справка",
         HR_LIGHT,
-        "<i>Добавь бота в группу как админа</i>",
+        "<i>Добавь меня в группу и выдай права администратора</i>",
     ])
 
 
@@ -211,13 +218,15 @@ def welcome_group(name: str, version: str, bot_name: str = "TitanMod") -> str:
     return "\n".join([
         f"✨ <b>{html_esc(bot_name)}</b>  <code>v{html_esc(version)}</code>",
         HR,
-        f"Привет, <b>{html_esc(name)}</b>!",
+        f"Привет, <b>{html_esc(name)}</b>! Я на связи в этом чате.",
         "",
-        f"{BULLET} <code>/settings</code> · <code>/commands</code>",
-        f"{BULLET} <code>/ranks</code> · <code>/rules</code>",
-        f"{BULLET} <code>/preset normal</code>",
+        "<b>Полезное админам</b>",
+        f"  {BULLET} <code>/settings</code> — настройки чата",
+        f"  {BULLET} <code>/commands</code> — каталог команд",
+        f"  {BULLET} <code>/rules</code> · <code>/ranks</code>",
+        f"  {BULLET} <code>/preset normal</code> — готовый автомод",
         HR_LIGHT,
-        "🏠 ЛС: <code>/menu</code>",
+        "🏠 В личке удобнее: <code>/menu</code>",
     ])
 
 

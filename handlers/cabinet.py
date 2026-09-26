@@ -35,34 +35,37 @@ async def _safe_xp(chat_id: int, user_id: int) -> tuple[int, int]:
 def main_menu_kb(is_connected: bool = False) -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     b.row(
-        InlineKeyboardButton(text="👤 Профиль", callback_data="cab:profile"),
-        InlineKeyboardButton(text="🏅 Ранги", callback_data="cab:ranks"),
+        InlineKeyboardButton(text="👤  Профиль", callback_data="cab:profile"),
+        InlineKeyboardButton(text="🏅  Ранги", callback_data="cab:ranks"),
     )
     b.row(
-        InlineKeyboardButton(text="🔗 Мои чаты", callback_data="cab:chats"),
-        InlineKeyboardButton(text="⚙️ Настройки", callback_data="cab:settings"),
+        InlineKeyboardButton(text="🔗  Мои чаты", callback_data="cab:chats"),
+        InlineKeyboardButton(text="⚙️  Настройки", callback_data="cab:settings"),
     )
     b.row(
-        InlineKeyboardButton(text="📊 Статистика", callback_data="cab:stats"),
-        InlineKeyboardButton(text="💰 Экономика", callback_data="cab:eco"),
+        InlineKeyboardButton(text="📊  Статистика", callback_data="cab:stats"),
+        InlineKeyboardButton(text="💰  Экономика", callback_data="cab:eco"),
     )
     b.row(
-        InlineKeyboardButton(text="📚 Команды", callback_data="cab:cmds"),
-        InlineKeyboardButton(text="❓ Справка", callback_data="cab:help"),
+        InlineKeyboardButton(text="📚  Команды", callback_data="cab:cmds"),
+        InlineKeyboardButton(text="❓  Справка", callback_data="cab:help"),
     )
     b.row(
-        InlineKeyboardButton(text="🎫 Поддержка", callback_data="cab:support"),
-        InlineKeyboardButton(text="ℹ️ О боте", callback_data="cab:about"),
+        InlineKeyboardButton(text="🎫  Поддержка", callback_data="cab:support"),
+        InlineKeyboardButton(text="ℹ️  О боте", callback_data="cab:about"),
+    )
+    b.row(
+        InlineKeyboardButton(text="🎮  Мини-игры", callback_data="cab:games"),
     )
     if is_connected:
-        b.row(InlineKeyboardButton(text="🔓 Отвязать чат", callback_data="cab:disconnect"))
-    b.row(InlineKeyboardButton(text="✖ Закрыть", callback_data="cab:close"))
+        b.row(InlineKeyboardButton(text="🔓  Отвязать чат", callback_data="cab:disconnect"))
+    b.row(InlineKeyboardButton(text="✕  Закрыть", callback_data="cab:close"))
     return b.as_markup()
 
 
 def back_main_kb() -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    b.row(InlineKeyboardButton(text="← В меню", callback_data="cab:home"))
+    b.row(InlineKeyboardButton(text="‹  В главное меню", callback_data="cab:home"))
     return b.as_markup()
 
 
@@ -83,7 +86,7 @@ def settings_kb(prefs: dict) -> InlineKeyboardMarkup:
         text=f"{nl} Уведомления об уровнях",
         callback_data="cab:set:notify_levelup",
     ))
-    b.row(InlineKeyboardButton(text="← В меню", callback_data="cab:home"))
+    b.row(InlineKeyboardButton(text="‹  В главное меню", callback_data="cab:home"))
     return b.as_markup()
 
 
@@ -147,7 +150,7 @@ async def cmd_start_private(message: Message, bot: Bot):
         f"Личное меню — кнопкой ниже 👇"
     )
     b = InlineKeyboardBuilder()
-    b.row(InlineKeyboardButton(text="🏠 Личный кабинет", callback_data="cab:home"))
+    b.row(InlineKeyboardButton(text="🏠  Личный кабинет", callback_data="cab:home"))
     if add_url:
         b.row(InlineKeyboardButton(text="➕ Добавить в группу", url=add_url))
     b.row(
@@ -174,6 +177,21 @@ async def cabinet_cb(callback: CallbackQuery, bot: Bot):
     if action == "home":
         text, connected = await build_home_text(user, bot)
         await safe_edit(callback.message, text, main_menu_kb(connected))
+        await safe_answer(callback)
+        return
+
+
+    if action == "games":
+        from keyboards.inline import games_kb
+        text = "\n".join([
+            "🎮 <b>Мини-игры</b>",
+            "━━━━━━━━━━━━━━━━━━━━",
+            "Нажми подсказку или введи команду:",
+            "› <code>/rps</code> · <code>/guess</code> · <code>/hangman</code>",
+            "› <code>/bj</code> · <code>/trivia</code> · <code>/статья 19</code>",
+            "› <code>/minigames</code> — полный список",
+        ])
+        await safe_edit(callback.message, text, games_kb())
         await safe_answer(callback)
         return
 
@@ -295,7 +313,7 @@ async def cabinet_cb(callback: CallbackQuery, bot: Bot):
         )
         b = InlineKeyboardBuilder()
         b.row(InlineKeyboardButton(text="🎁 Забрать daily", callback_data="cab:daily"))
-        b.row(InlineKeyboardButton(text="← В меню", callback_data="cab:home"))
+        b.row(InlineKeyboardButton(text="‹  В главное меню", callback_data="cab:home"))
         await safe_edit(callback.message, text, b.as_markup())
         await safe_answer(callback)
         return
