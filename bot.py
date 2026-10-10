@@ -131,26 +131,3 @@ async def main() -> None:
             logger.warning("DB checkpoint: %s", e)
         await bot.session.close()
 
-from aiogram.exceptions import TelegramBadRequest
-import logging
-
-@dp.errors()
-async def global_error_handler(update, exception):
-    logging.error(f"Update error: {exception}")
-    if isinstance(exception, TelegramBadRequest) and "TOPIC" in str(exception).upper():
-        # Тема закрыта — пробуем отправить в General
-        try:
-            if update.message:
-                await update.message.bot.send_message(
-                    chat_id=update.message.chat.id,
-                    text="⚠️ Тема закрыта. Откройте её или пишите в General.",
-                )
-        except Exception:
-            pass
-    return True
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logger.info("stopped")
