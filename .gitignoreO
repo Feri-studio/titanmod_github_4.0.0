@@ -1,0 +1,14 @@
+.env
+*.db
+*.sqlite
+*.sqlite3
+__pycache__/
+*.pyc
+*.pyo
+*.log
+venv/
+.venv/
+data/*.db
+data_bulk/*.db
+data_games/*.db
+.DS_Store
